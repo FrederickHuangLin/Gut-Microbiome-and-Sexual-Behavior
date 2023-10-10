@@ -1,0 +1,655 @@
+---
+title: "Data Summary and Exploratory Analyses"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    toc: true
+    theme: simple
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
+                      message = FALSE, comment = NA)
+options(scipen = 999, digits = 2)
+
+library(readr)
+library(tidyverse) 
+library(magrittr)
+library(qwraps2)
+library(ggpubr)
+library(ggsci)
+library(CLME)
+
+df_merge = read_csv("../data/df_merge.csv")
+df_v1 = df_merge %>%
+  filter(visit == "v1")
+```
+
+# Sequence counts
+
+```{r}
+df_seq = read_csv("../data/per-sample-fastq-counts.csv")
+df_seq = df_seq %>%
+  filter(`Sample ID` %in% df_v1$sampleid)
+
+bin_length = 4000
+b = seq(0, 140000, bin_length)
+p = df_seq %>% 
+  ggplot(aes(x = `Sequence count`)) +
+  geom_histogram(aes(y = ..count..), breaks = b, color = "black", fill = "lightblue1") +
+  geom_density(aes(y = ..density..* (nrow(df_seq) * bin_length)), color = "brown3") +
+  scale_x_continuous(breaks = seq(20000, 140000, 40000)) +
+  labs(x = "Read Number", y = "Number of Samples", title = "Reads per sample",
+       subtitle = paste0("Min = ", min(df_seq$`Sequence count`), " (", 
+                         df_seq$`Sample ID`[which.min(df_seq$`Sequence count`)], ") \n",
+                         "Max = ", max(df_seq$`Sequence count`), " (", 
+                         df_seq$`Sample ID`[which.max(df_seq$`Sequence count`)], ")")) + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+p
+
+tol_reads = sum(df_seq$`Sequence count`)
+mean_reads = mean(df_seq$`Sequence count`)
+med_reads = median(df_seq$`Sequence count`)
+```
+
+1. Number of samples: `r nrow(df_seq)`
+
+2. Total number of sequences: `r tol_reads`
+
+3. Average reads: `r mean_reads`
+
+4. Median reads: `r med_reads`
+
+# Demographic information {.tabset}
+
+Primary group: 
+
+  + G1: # receptive anal intercourse = 0
+  
+  + G2: # receptive anal intercourse = 1
+  
+  + G3: # receptive anal intercourse = 2 - 5
+  
+  + G4: # receptive anal intercourse = 6 +
+  
+Secondary group:
+
+  + G1: # receptive anal intercourse = 0
+  
+  + G2: # receptive anal intercourse = 1
+  
+  + G3: # receptive anal intercourse = 2 - 3
+  
+  + G4: # receptive anal intercourse = 4 - 8
+  
+  + G5: # receptive anal intercourse = 9 +
+
+## Table 1: the original data
+
+```{r, results='asis'}
+options(qwraps2_markup = "markdown")
+
+summary_template =
+  list("Primary Group" =
+         list("G1" = ~ n_perc0(group1 == "g1", na_rm = T),
+              "G2" = ~ n_perc0(group1 == "g2", na_rm = T),
+              "G3" = ~ n_perc0(group1 == "g3", na_rm = T),
+              "G4" = ~ n_perc0(group1 == "g4", na_rm = T),
+              "Missing" = ~ n_perc0(group1 == "missing", na_rm = T)),
+       "Secondary Group" =
+         list("G1" = ~ n_perc0(group2 == "g1", na_rm = T),
+              "G2" = ~ n_perc0(group2 == "g2", na_rm = T),
+              "G3" = ~ n_perc0(group2 == "g3", na_rm = T),
+              "G4" = ~ n_perc0(group2 == "g4", na_rm = T),
+              "G5" = ~ n_perc0(group2 == "g5", na_rm = T),
+              "Missing" = ~ n_perc0(group2 == "missing", na_rm = T)),
+       "Status" =
+         list("NC" = ~ n_perc0(status == "nc", na_rm = T),
+              "SC" = ~ n_perc0(status == "sc", na_rm = T),
+              "Missing" = ~ n_perc0(status == "missing", na_rm = T)),
+       "Time to Develop AIDS" =
+         list("< 5 years" = ~ n_perc0(time2aids == "< 5 yrs", na_rm = T),
+              "5 - 10 years" = ~ n_perc0(time2aids == "5 - 10 yrs", na_rm = T),
+              "> 10 years" = ~ n_perc0(time2aids == "> 10 yrs", na_rm = T),
+              "Non-progressor" = ~ n_perc0(time2aids == "never", na_rm = T),
+              "Missing" = ~ n_perc0(time2aids == "missing", na_rm = T)),
+       "Age" =
+         list("min" = ~ round(min(age, na.rm = T), 2),
+              "max" = ~ round(max(age, na.rm = T), 2),
+              "mean (sd)" = ~ qwraps2::mean_sd(age, na_rm = T, show_n = "never")),
+       "Race" = 
+         list("White" = ~ n_perc0(race == "white", na_rm = T),
+              "Black" = ~ n_perc0(race == "black", na_rm = T),
+              "Others" = ~ n_perc0(race == "others", na_rm = T),
+              "Missing" = ~ n_perc0(race == "missing", na_rm = T)),
+       "Education" = 
+         list("Postgrad" = ~ n_perc0(educa == "postgrad", na_rm = T),
+              "Undergrad" = ~ n_perc0(educa == "undergrad", na_rm = T),
+              "No degree" = ~ n_perc0(educa == "no degree", na_rm = T),
+              "Missing" = ~ n_perc0(educa == "missing", na_rm = T)),
+       "Smoking status" = 
+         list("Never" = ~ n_perc0(smoke == "never", na_rm = T),
+              "Former" = ~ n_perc0(smoke == "former", na_rm = T),
+              "Current" = ~ n_perc0(smoke == "current", na_rm = T),
+              "Missing" = ~ n_perc0(smoke == "missing", na_rm = T)),
+       "Drinking status" = 
+         list("None" = ~ n_perc0(drink == "none", na_rm = T),
+              "Low/Moderate" = ~ n_perc0(drink == "low/moderate", na_rm = T),
+              "Moderate/Heavy" = ~ n_perc0(drink == "moderate/heavy", na_rm = T),
+              "Binge" = ~ n_perc0(drink == "binge", na_rm = T),
+              "Missing" = ~ n_perc0(drink == "missing", na_rm = T)),
+       "Antibiotics Usage" = 
+         list("No" = ~ n_perc0(abx_use == "no", na_rm = T),
+              "Yes" = ~ n_perc0(abx_use == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(abx_use == "missing", na_rm = T)),
+       "STD" = 
+         list("No" = ~ n_perc0(std == "no", na_rm = T),
+              "Yes" = ~ n_perc0(std == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(std == "missing", na_rm = T)),
+       "Drug usage" = 
+         list("No" = ~ n_perc0(druguse == "no", na_rm = T),
+              "Yes" = ~ n_perc0(druguse == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(druguse == "missing", na_rm = T)),
+       "HBV" = 
+         list("Negative" = ~ n_perc0(hbv == "negative", na_rm = T),
+              "Resolved" = ~ n_perc0(hbv == "resolved", na_rm = T),
+              "Positive" = ~ n_perc0(hbv == "positive", na_rm = T),
+              "Missing" = ~ n_perc0(hbv == "missing", na_rm = T)),
+       "HCV" = 
+         list("Negative" = ~ n_perc0(hcv == "negative", na_rm = T),
+              "Positive" = ~ n_perc0(hcv == "positive", na_rm = T),
+              "Missing" = ~ n_perc0(hcv == "missing", na_rm = T))
+  )
+
+tab = df_v1 %>% 
+  summary_table(summary_template)
+print(tab, rtitle = "Demographic information at the baseline visit")
+```
+
+## Table 1: the tidy data
+
+```{r, results='asis'}
+# Tidy up the baseline data
+df_v1 = df_v1 %>%
+  mutate(
+    drink = case_when(
+      drink %in% c("none", "low/moderate") ~ "low",
+      drink %in% c("moderate/heavy", "binge") ~ "heavy",
+      TRUE ~ "missing"
+    )
+  )
+
+write_csv(df_v1, "../data/df_v1.csv")
+
+options(qwraps2_markup = "markdown")
+
+summary_template =
+  list("Primary Group" =
+         list("G1" = ~ n_perc0(group1 == "g1", na_rm = T),
+              "G2" = ~ n_perc0(group1 == "g2", na_rm = T),
+              "G3" = ~ n_perc0(group1 == "g3", na_rm = T),
+              "G4" = ~ n_perc0(group1 == "g4", na_rm = T),
+              "Missing" = ~ n_perc0(group1 == "missing", na_rm = T)),
+       "Secondary Group" =
+         list("G1" = ~ n_perc0(group2 == "g1", na_rm = T),
+              "G2" = ~ n_perc0(group2 == "g2", na_rm = T),
+              "G3" = ~ n_perc0(group2 == "g3", na_rm = T),
+              "G4" = ~ n_perc0(group2 == "g4", na_rm = T),
+              "G5" = ~ n_perc0(group2 == "g5", na_rm = T),
+              "Missing" = ~ n_perc0(group2 == "missing", na_rm = T)),
+       "Status" =
+         list("NC" = ~ n_perc0(status == "nc", na_rm = T),
+              "SC" = ~ n_perc0(status == "sc", na_rm = T),
+              "Missing" = ~ n_perc0(status == "missing", na_rm = T)),
+       "Time to Develop AIDS" =
+         list("< 5 years" = ~ n_perc0(time2aids == "< 5 yrs", na_rm = T),
+              "5 - 10 years" = ~ n_perc0(time2aids == "5 - 10 yrs", na_rm = T),
+              "> 10 years" = ~ n_perc0(time2aids == "> 10 yrs", na_rm = T),
+              "Non-progressor" = ~ n_perc0(time2aids == "never", na_rm = T),
+              "Missing" = ~ n_perc0(time2aids == "missing", na_rm = T)),
+       "Age" =
+         list("min" = ~ round(min(age, na.rm = T), 2),
+              "max" = ~ round(max(age, na.rm = T), 2),
+              "mean (sd)" = ~ qwraps2::mean_sd(age, na_rm = T, show_n = "never")),
+       "Race" = 
+         list("White" = ~ n_perc0(race == "white", na_rm = T),
+              "Black" = ~ n_perc0(race == "black", na_rm = T),
+              "Others" = ~ n_perc0(race == "others", na_rm = T),
+              "Missing" = ~ n_perc0(race == "missing", na_rm = T)),
+       "Education" = 
+         list("Postgrad" = ~ n_perc0(educa == "postgrad", na_rm = T),
+              "Undergrad" = ~ n_perc0(educa == "undergrad", na_rm = T),
+              "No degree" = ~ n_perc0(educa == "no degree", na_rm = T),
+              "Missing" = ~ n_perc0(educa == "missing", na_rm = T)),
+       "Smoking status" = 
+         list("Never" = ~ n_perc0(smoke == "never", na_rm = T),
+              "Former" = ~ n_perc0(smoke == "former", na_rm = T),
+              "Current" = ~ n_perc0(smoke == "current", na_rm = T),
+              "Missing" = ~ n_perc0(smoke == "missing", na_rm = T)),
+       "Drinking status" = 
+         list("Low" = ~ n_perc0(drink == "low", na_rm = T),
+              "Heavy" = ~ n_perc0(drink == "heavy", na_rm = T),
+              "Missing" = ~ n_perc0(drink == "missing", na_rm = T)),
+       "Antibiotics Usage" = 
+         list("No" = ~ n_perc0(abx_use == "no", na_rm = T),
+              "Yes" = ~ n_perc0(abx_use == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(abx_use == "missing", na_rm = T)),
+       "STD" = 
+         list("No" = ~ n_perc0(std == "no", na_rm = T),
+              "Yes" = ~ n_perc0(std == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(std == "missing", na_rm = T)),
+       "Drug usage" = 
+         list("No" = ~ n_perc0(druguse == "no", na_rm = T),
+              "Yes" = ~ n_perc0(druguse == "yes", na_rm = T),
+              "Missing" = ~ n_perc0(druguse == "missing", na_rm = T)),
+       "HBV" = 
+         list("Negative" = ~ n_perc0(hbv == "negative", na_rm = T),
+              "Resolved" = ~ n_perc0(hbv == "resolved", na_rm = T),
+              "Positive" = ~ n_perc0(hbv == "positive", na_rm = T),
+              "Missing" = ~ n_perc0(hbv == "missing", na_rm = T)),
+       "HCV" = 
+         list("Negative" = ~ n_perc0(hcv == "negative", na_rm = T),
+              "Positive" = ~ n_perc0(hcv == "positive", na_rm = T),
+              "Missing" = ~ n_perc0(hcv == "missing", na_rm = T))
+  )
+
+tab = df_v1 %>% 
+  summary_table(summary_template)
+print(tab, rtitle = "Demographic information at the baseline visit")
+```
+
+## Outcome vs. other variables
+
+```{r, fig.width=7}
+df = df_v1 %>%
+  filter(!is.na(age), educa != "missing", abx_use != "missing",
+         std != "missing", smoke != "missing", drink != "missing", 
+         druguse != "missing", hbv != "missing", 
+         status != "missing")
+df$status = factor(df$status, levels = c("nc", "sc"))
+df$educa = factor(df$educa, levels = c("no degree", "undergrad", "postgrad"))
+df$abx_use = factor(df$abx_use, levels = c("no", "yes"))
+df$std = factor(df$std, levels = c("no", "yes"))
+df$smoke = factor(df$smoke, levels = c("never", "former", "current"))
+df$drink = factor(df$drink, levels = c("low", "heavy"))
+df$druguse = factor(df$druguse, levels = c("no", "yes"))
+df$hbv = factor(df$hbv, levels = c("negative", "resolved", "positive"))
+
+model = glm(status ~ age + educa + abx_use + std + smoke + drink + 
+              druguse + hbv, data = df, family = binomial)
+
+tidy_model = broom::tidy(model) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(index = seq_len(length(coef(model)) - 1),
+         label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
+                   "Abx Use (Yes)", "STD (Yes)", 
+                   "Smoke (Former)", "Smoke (Current)",
+                   "Drink (Heavy)", "Drug Use (Yes)",  "HBV (Resolved)", "HBV (Positive)"),
+         label_factor = factor(label, levels = rev(sort(label))),
+         p_value = round(p.value, 2),
+         OR = exp(estimate),
+         LL = exp(estimate - 1.96*std.error),
+         UL = exp(estimate + 1.96*std.error)) %>%
+  rowwise() %>%
+  mutate(CI = paste(round(LL, 2), round(UL, 2), sep = ", ")) %>%
+  ungroup()
+
+p_forest = tidy_model %>%
+  ggplot(aes(y = label_factor, x = OR)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed", linewidth = 1, alpha = 0.5) +
+  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_point(shape = 18, size = 5) +
+  scale_x_log10(breaks = c(0.1, 0.2, 0.5, 1, 2, 5, 10), 
+                labels = c("0.1", "0.2", "0.5", "1", "2", "5", "10")) +
+  scale_y_discrete(name = "") +
+  labs(x = "Odds Ratio (95% CI)", y = "") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black")) +
+  ggtitle("")
+
+table_base = tidy_model %>%
+  ggplot(aes(y = label_factor)) +
+  labs(x = "", y = "") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12), 
+        axis.text.x = element_text(color = "white", hjust = -3, size = 25),
+        axis.line = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y = element_blank(), 
+        legend.position = "none",
+        panel.background = element_blank(), 
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        plot.background = element_blank())
+
+tab_or = table_base + 
+  geom_text(aes(y = label_factor, x = 1, 
+                label = sprintf("%0.1f", round(OR, digits = 1))), size = 4) +
+  ggtitle("OR")
+
+tab_ci = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = CI), size = 4) + 
+  ggtitle("95% CI")
+
+tab_p = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = p_value), size = 4) + 
+  ggtitle("P")
+
+p_out_var_prim = ggarrange(p_forest, tab_or, tab_ci, tab_p, 
+                           ncol = 4, nrow = 1, 
+                           widths = c(10, 1, 2, 1), align = "h")
+```
+
+
+## Exposure (primary group) vs. outcome
+
+```{r}
+df_fig = df_v1 %>%
+  filter(group1 != "missing",
+         status != "missing") %>%
+  group_by(group1) %>%
+  summarise(total = n(),
+            nc_num = sum(status == "nc"),
+            sc_num = sum(status == "sc")) %>%
+  dplyr::mutate(perc_nc = round(nc_num/total * 100, 2),
+                perc_sc = round(sc_num/total * 100, 2)) %>%
+  dplyr::select(group1, perc_nc, perc_sc) %>%
+  pivot_longer(cols = perc_nc:perc_sc, names_to = "perc", values_to = "value")
+
+cons = list(order = "simple", decreasing = FALSE, node = 1)
+df_test = df_v1 %>%
+  filter(group1 != "missing",
+         status != "missing") %>%
+  transmute(group1 = group1, 
+            status = ifelse(status == "nc", 0, 1))
+df_test$group1 = factor(df_test$group1, ordered = TRUE)
+fit_clme = clme(status ~ group1, data = df_test, constraints = cons, seed = 123)
+fit_summ = summary(fit_clme)
+p_val = fit_summ$p.value
+p_lab = ifelse(p_val == 0, "p < 0.001", paste0("p = ", p_val))
+test_lab = paste0("LRT = ", signif(fit_summ$ts.glb, 2))
+lab = paste0(test_lab, ", ", p_lab)
+
+df_fig$group1 = recode(df_fig$group1,
+                       `g1` = "G1", `g2` = "G2",
+                       `g3` = "G3", `g4` = "G4")
+
+p_summ_prim = df_fig %>% 
+  ggbarplot(x = "group1", y = "value", 
+            fill = "perc", color = "black", palette = "Paired",
+            xlab = "", ylab = "Percentage (%)", 
+            label = TRUE, lab.col = "white", lab.pos = "in") +
+  scale_y_continuous(breaks = c(0, 20, 40, 60, 80, 100), limits = c(0, 110)) + 
+  geom_text(aes(x = 3.5, y = 110, label = lab)) +
+  scale_fill_aaas(name = NULL, labels = c("NC", "SC"))
+```
+
+## Exposure (primary group) vs. other variables
+
+```{r, fig.width=7}
+df = df_v1 %>%
+  filter(!is.na(age), educa != "missing", abx_use != "missing",
+         std != "missing", smoke != "missing", drink != "missing", 
+         druguse != "missing", hbv != "missing", 
+         group1 != "missing")
+df$group1 = factor(df$group1, levels = c("g1", "g2", "g3", "g4"))
+df$educa = factor(df$educa, levels = c("no degree", "undergrad", "postgrad"))
+df$abx_use = factor(df$abx_use, levels = c("no", "yes"))
+df$std = factor(df$std, levels = c("no", "yes"))
+df$smoke = factor(df$smoke, levels = c("never", "former", "current"))
+df$drink = factor(df$drink, levels = c("low", "heavy"))
+df$druguse = factor(df$druguse, levels = c("no", "yes"))
+df$hbv = factor(df$hbv, levels = c("negative", "resolved", "positive"))
+
+model = polr(group1 ~ age + educa + abx_use + std + smoke + drink + 
+              druguse + hbv, data = df, Hess = TRUE, method = "logistic")
+
+coefs = summary(model)$coefficients
+wald_stat = coefs[, "Value"] / coefs[, "Std. Error"]
+wald_pvalue = 2 * pnorm(abs(wald_stat), lower.tail = FALSE)
+wald_pvalue = wald_pvalue[!names(wald_pvalue) %in% c("g1|g2", "g2|g3", "g3|g4")]
+
+tidy_model = broom::tidy(model) %>%
+  filter(!term %in% c("g1|g2", "g2|g3", "g3|g4")) %>%
+  mutate(label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
+                   "Abx Use (Yes)", "STD (Yes)", 
+                   "Smoke (Former)", "Smoke (Current)",
+                   "Drink (Heavy)", "Drug Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
+         label_factor = factor(label, levels = rev(sort(label))),
+         p_value = round(wald_pvalue, 2),
+         OR = exp(estimate),
+         LL = exp(estimate - 1.96*std.error),
+         UL = exp(estimate + 1.96*std.error)) %>%
+  rowwise() %>%
+  mutate(CI = paste(round(LL, 2), round(UL, 2), sep = ", ")) %>%
+  ungroup()
+
+p_forest = tidy_model %>%
+  ggplot(aes(y = label_factor, x = OR)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_point(shape = 18, size = 5) +
+  scale_x_log10(breaks = c(0.1, 0.2, 0.5, 1, 2, 5, 10), 
+                labels = c("0.1", "0.2", "0.5", "1", "2", "5", "10")) +
+  scale_y_discrete(name = "") +
+  labs(x = "Odds Ratio (95% CI)", y = "") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black")) +
+  ggtitle("")
+
+table_base = tidy_model %>%
+  ggplot(aes(y = label_factor)) +
+  labs(x = "", y = "") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12), 
+        axis.text.x = element_text(color = "white", hjust = -3, size = 25),
+        axis.line = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y = element_blank(), 
+        legend.position = "none",
+        panel.background = element_blank(), 
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        plot.background = element_blank())
+
+tab_or = table_base + 
+  geom_text(aes(y = label_factor, x = 1, 
+                label = sprintf("%0.1f", round(OR, digits = 1))), size = 4) +
+  ggtitle("OR")
+
+tab_ci = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = CI), size = 4) + 
+  ggtitle("95% CI")
+
+tab_p = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = p_value), size = 4) + 
+  ggtitle("P")
+
+p_exp_var_prim = ggarrange(p_forest, tab_or, tab_ci, tab_p, 
+                           ncol = 4, nrow = 1,
+                           widths = c(10, 1, 2, 1), align = "h")
+```
+  
+## Exposure (secondary group) vs. outcome
+
+```{r}
+df_fig = df_v1 %>%
+  filter(group2 != "missing",
+         status != "missing") %>%
+  group_by(group2) %>%
+  summarise(total = n(),
+            nc_num = sum(status == "nc"),
+            sc_num = sum(status == "sc")) %>%
+  dplyr::mutate(perc_nc = round(nc_num/total * 100, 2),
+                perc_sc = round(sc_num/total * 100, 2)) %>%
+  dplyr::select(group2, perc_nc, perc_sc) %>%
+  pivot_longer(cols = perc_nc:perc_sc, names_to = "perc", values_to = "value")
+
+cons = list(order = "simple", decreasing = FALSE, node = 1)
+df_test = df_v1 %>%
+  filter(group2 != "missing",
+         status != "missing") %>%
+  transmute(group2 = group2, 
+            status = ifelse(status == "nc", 0, 1))
+df_test$group2 = factor(df_test$group2, ordered = TRUE)
+fit_clme = clme(status ~ group2, data = df_test, constraints = cons, seed = 123)
+fit_summ = summary(fit_clme)
+p_val = fit_summ$p.value
+p_lab = ifelse(p_val == 0, "p < 0.001", paste0("p = ", p_val))
+
+df_fig$group2 = recode(df_fig$group2,
+                       `g1` = "G1", `g2` = "G2",
+                       `g3` = "G3", `g4` = "G4", `g5` = "G5")
+
+p_summ_second = df_fig %>% 
+  ggbarplot(x = "group2", y = "value", 
+            fill = "perc", color = "black", palette = "Paired",
+            xlab = "", ylab = "Percentage (%)", 
+            label = TRUE, lab.col = "white", lab.pos = "in") +
+  scale_y_continuous(breaks = c(0, 20, 40, 60, 80, 100), limits = c(0, 110)) + 
+  geom_text(aes(x = 3.5, y = 110, label = p_lab)) +
+  scale_fill_aaas(name = NULL, labels = c("NC", "SC"))
+
+p_summ_second
+```
+
+## Exposure (secondary group) vs. other variables
+
+```{r, fig.width=7}
+df = df_v1 %>%
+  filter(!is.na(age), educa != "missing", abx_use != "missing",
+         std != "missing", smoke != "missing", drink != "missing", 
+         druguse != "missing", hbv != "missing", 
+         group2 != "missing")
+df$group2 = factor(df$group2, levels = c("g1", "g2", "g3", "g4", "g5"))
+df$educa = factor(df$educa, levels = c("no degree", "undergrad", "postgrad"))
+df$abx_use = factor(df$abx_use, levels = c("no", "yes"))
+df$std = factor(df$std, levels = c("no", "yes"))
+df$smoke = factor(df$smoke, levels = c("never", "former", "current"))
+df$drink = factor(df$drink, levels = c("low", "heavy"))
+df$druguse = factor(df$druguse, levels = c("no", "yes"))
+df$hbv = factor(df$hbv, levels = c("negative", "resolved", "positive"))
+
+model = polr(group2 ~ age + educa + abx_use + std + smoke + drink + 
+              druguse + hbv, data = df, Hess = TRUE, method = "logistic")
+
+coefs = summary(model)$coefficients
+wald_stat = coefs[, "Value"] / coefs[, "Std. Error"]
+wald_pvalue = 2 * pnorm(abs(wald_stat), lower.tail = FALSE)
+wald_pvalue = wald_pvalue[!names(wald_pvalue) %in% c("g1|g2", "g2|g3", "g3|g4", "g4|g5")]
+
+tidy_model = broom::tidy(model) %>%
+  filter(!term %in% c("g1|g2", "g2|g3", "g3|g4", "g4|g5")) %>%
+  mutate(label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
+                   "Abx Use (Yes)", "STD (Yes)", 
+                   "Smoke (Former)", "Smoke (Current)",
+                   "Drink (Heavy)", "Drug Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
+         label_factor = factor(label, levels = rev(sort(label))),
+         p_value = round(wald_pvalue, 2),
+         OR = exp(estimate),
+         LL = exp(estimate - 1.96*std.error),
+         UL = exp(estimate + 1.96*std.error)) %>%
+  rowwise() %>%
+  mutate(CI = paste(round(LL, 2), round(UL, 2), sep = ", ")) %>%
+  ungroup()
+
+p_forest = tidy_model %>%
+  ggplot(aes(y = label_factor, x = OR)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_point(shape = 18, size = 5) +
+  scale_x_log10(breaks = c(0.1, 0.2, 0.5, 1, 2, 5, 10), 
+                labels = c("0.1", "0.2", "0.5", "1", "2", "5", "10")) +
+  scale_y_discrete(name = "") +
+  labs(x = "Odds Ratio (95% CI)", y = "") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black")) +
+  ggtitle("")
+
+table_base = tidy_model %>%
+  ggplot(aes(y = label_factor)) +
+  labs(x = "", y = "") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12), 
+        axis.text.x = element_text(color = "white", hjust = -3, size = 25),
+        axis.line = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y = element_blank(), 
+        legend.position = "none",
+        panel.background = element_blank(), 
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        plot.background = element_blank())
+
+tab_or = table_base + 
+  geom_text(aes(y = label_factor, x = 1, 
+                label = sprintf("%0.1f", round(OR, digits = 1))), size = 4) +
+  ggtitle("OR")
+
+tab_ci = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = CI), size = 4) + 
+  ggtitle("95% CI")
+
+tab_p = table_base +
+  geom_text(aes(y = label_factor, x = 1, label = p_value), size = 4) + 
+  ggtitle("P")
+
+p_exp_var_second = ggarrange(p_forest, tab_or, tab_ci, tab_p, 
+                             ncol = 4, nrow = 1,
+                             widths = c(10, 1, 2, 1), align = "h")
+p_exp_var_second
+```
+
+# Outputs
+
+```{r}
+ggsave(filename = "../results/figures/main_group_by_perc.pdf", plot = p_summ_prim,
+      width = 6.25, height = 6, units = "in")
+ggsave(filename = "../results/figures/main_group_by_perc.jpeg", plot = p_summ_prim,
+      width = 6.25, height = 6, units = "in", dpi = 100)
+
+p_forest = ggarrange(p_exp_var_prim, p_out_var_prim, 
+                     ncol = 2, nrow = 1, labels = c("a", "b"))
+ggsave(filename = "../results/figures/main_forest.pdf", plot = p_forest,
+       width = 15, height = 6, units = "in")
+ggsave(filename = "../results/figures/main_forest.jpeg", plot = p_forest,
+       width = 15, height = 6, units = "in", dpi = 100)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```
+
+
+
+
+

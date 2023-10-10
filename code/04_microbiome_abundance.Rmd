@@ -1,0 +1,449 @@
+---
+title: "Differential Abundance Analyses"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, 
+                      comment=NA, fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(openxlsx)
+library(tidyverse) 
+library(ggpubr)
+library(ANCOMBC)
+library(SingleCellExperiment)
+library(DT)
+options(DT.options = list(
+  initComplete = JS("function(settings, json) {",
+  "$(this.api().table().header()).css({'background-color': 
+  '#000', 'color': '#fff'});","}")))
+```
+
+```{r data}
+# OTU table
+otu_table = read_tsv("../data/otu-table.tsv")
+otu_id = otu_table$`#OTU ID`
+otu_table = data.frame(otu_table[, -1], check.names = FALSE, row.names = otu_id)
+
+# Taxonomy table
+tax = read_tsv("../data/taxonomy.tsv")
+otu_id = tax$`Feature ID`
+tax = data.frame(tax[, - c(1, 3)], row.names = otu_id)
+tax = tax %>% 
+  separate(col = Taxon, 
+           into = c("Kingdom", "Phylum", "Class", "Order", 
+                    "Family", "Genus", "Species"),
+           sep = ";") %>%
+  rowwise() %>%
+  dplyr::mutate_all(function(x) strsplit(x, "__")[[1]][2]) %>%
+  mutate(Species = ifelse(!is.na(Species) & !is.na(Genus),
+                          paste(ifelse(strsplit(Genus, "")[[1]][1] == "[",
+                                       strsplit(Genus, "")[[1]][2],
+                                       strsplit(Genus, "")[[1]][1]), Species, sep = "."),
+                          NA)) %>%
+  ungroup()
+tax = as.matrix(tax)
+rownames(tax) = otu_id
+tax[tax == ""] = NA
+
+# Meta data
+meta_data = read_csv("../data/df_v1.csv")
+meta_data$status = factor(meta_data$status, levels = c("nc", "sc"))
+meta_data$time2aids = factor(meta_data$time2aids,
+                             levels = c("never", "> 10 yrs",
+                                        "5 - 10 yrs", "< 5 yrs"))
+
+# Phyloseq object
+OTU = phyloseq::otu_table(otu_table, taxa_are_rows = TRUE)
+META = phyloseq::sample_data(meta_data)
+phyloseq::sample_names(META) = meta_data$sampleid
+TAX = phyloseq::tax_table(tax)
+otu_data = phyloseq::phyloseq(OTU, TAX, META)
+otu_data = phyloseq::subset_samples(otu_data, group1 != "missing")
+
+genus_data = microbiome::aggregate_taxa(otu_data, "Genus")
+species_data = microbiome::aggregate_taxa(otu_data, "Species")
+
+tse = mia::makeTreeSummarizedExperimentFromPhyloseq(otu_data)
+tse
+
+wb = createWorkbook()
+```
+
+# Primary group at species level {.tabset}
+
+1. Number of stool samples `r phyloseq::nsamples(species_data)`,
+
+2. Number of taxa `r phyloseq::ntaxa(species_data)`.
+
+## Run ANCOMBC-2
+
+```{r, eval=FALSE}
+set.seed(123)
+output = ancombc2(data = tse, assay_name = "counts", tax_level = "Species",
+                  fix_formula = "group1 + abx_use", rand_formula = NULL,
+                  p_adj_method = "BY",
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "group1", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 8, verbose = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  em_control = list(tol = 1e-5, max_iter = 100),
+                  lme_control = lme4::lmerControl(),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
+                  trend_control = list(contrast = list(matrix(c(1, 0, 0,
+                                                                -1, 1, 0,
+                                                                0, -1, 1),
+                                                              nrow = 3, 
+                                                              byrow = TRUE),
+                                                       matrix(c(-1, 0, 0,
+                                                                1, -1, 0,
+                                                                0, 1, -1),
+                                                              nrow = 3, 
+                                                              byrow = TRUE)),
+                                       node = list(3, 3),
+                                       solver = "ECOS",
+                                       B = 1000))
+saveRDS(output, "../results/outputs/primary_ancombc2_species.rds")
+```
+
+## Bias-corrected abundances
+
+```{r}
+output = readRDS("../results/outputs/primary_ancombc2_species.rds")
+bias_correct_log_table = output$bias_correct_log_table
+bias_correct_log_table = bias_correct_log_table %>%
+  rownames_to_column("species")
+write_csv(bias_correct_log_table, "../results/outputs/bias_corr_species.csv")
+```
+
+## Structural zeros
+
+```{r, fig.width=12}
+tab_zero = output$zero_ind
+zero_total = rowSums(tab_zero[, -1])
+idx = which(!zero_total %in% c(0, 4))
+
+df_zero = tab_zero[idx, ] %>%
+  pivot_longer(cols = -taxon, names_to = "group", values_to = "value")
+df_zero$group = recode(df_zero$group, 
+                       `structural_zero (group1 = g1)` = "G1",
+                       `structural_zero (group1 = g2)` = "G2",
+                       `structural_zero (group1 = g3)` = "G3",
+                       `structural_zero (group1 = g4)` = "G4")
+
+df_zero %>% ggplot(aes(x = taxon, y = group, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_manual(name = "Absence", values = c("blue", "red")) +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## ANCOM-BC2 trend test
+
+```{r}
+res_trend = output$res_trend %>%
+  rowwise() %>%
+  filter(grepl("Species:", taxon)|grepl("Genus:", taxon)) %>%
+  mutate(taxon = ifelse(grepl("Genus:", taxon), 
+                        paste(strsplit(taxon, ":")[[1]][2], "spp."),
+                        strsplit(taxon, ":")[[1]][2])) %>%
+  ungroup() %>%
+  dplyr::filter(p_val < 0.05) %>%
+  arrange(taxon)
+
+addWorksheet(wb, "group_species")
+writeData(wb, "group_species", res_trend)
+
+df_fig = res_trend %>%
+  transmute(taxon, 
+            fc2 = round(exp(lfc_group1g2), 2), 
+            fc3 = round(exp(lfc_group1g3), 2),
+            fc4 = round(exp(lfc_group1g4), 2),
+            p_val, q_val, passed_ss) %>%
+  pivot_longer(fc2:fc4, names_to = "group", values_to = "value") %>%
+  dplyr::mutate(color = ifelse(q_val < 0.05, "seagreen", "black")) %>%
+  arrange(desc(color))
+df_fig$group = recode(df_fig$group, `fc2` = "G2 - G1", 
+                      `fc3` = "G3 - G1", `fc4` = "G4 - G1")
+df_fig$taxon = factor(df_fig$taxon, levels = unique(df_fig$taxon))
+    
+distinct_df = df_fig %>% 
+  dplyr::select(taxon, color) %>% 
+  distinct()
+tax_color = setNames(distinct_df$color, distinct_df$taxon)
+
+cell_max = max(abs(df_fig$value))
+fig_group_species = df_fig %>%
+  ggplot(aes(x = group, y = taxon, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = 1, 
+                       limit = c(0, cell_max), name = NULL) +
+  geom_text(aes(group, taxon, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(color = tax_color))
+```
+
+# Primary group at genus level {.tabset}
+
+1. Number of stool samples `r phyloseq::nsamples(genus_data)`,
+
+2. Number of taxa `r phyloseq::ntaxa(genus_data)`.
+
+## Run ANCOMBC-2
+
+```{r, eval=FALSE}
+set.seed(123)
+output = ancombc2(data = tse, assay_name = "counts", tax_level = "Genus",
+                  fix_formula = "group1 + abx_use", rand_formula = NULL,
+                  p_adj_method = "BY", 
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "group1", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 8, verbose = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  em_control = list(tol = 1e-5, max_iter = 100),
+                  lme_control = lme4::lmerControl(),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
+                  trend_control = list(contrast = list(matrix(c(1, 0, 0,
+                                                                -1, 1, 0,
+                                                                0, -1, 1),
+                                                              nrow = 3, 
+                                                              byrow = TRUE),
+                                                       matrix(c(-1, 0, 0,
+                                                                1, -1, 0,
+                                                                0, 1, -1),
+                                                              nrow = 3, 
+                                                              byrow = TRUE)),
+                                       node = list(3, 3),
+                                       solver = "ECOS",
+                                       B = 1000))
+saveRDS(output, "../results/outputs/primary_ancombc2_genus.rds")
+```
+
+## Bias-corrected abundances
+
+```{r}
+output = readRDS("../results/outputs/primary_ancombc2_genus.rds")
+bias_correct_log_table = output$bias_correct_log_table
+bias_correct_log_table = bias_correct_log_table %>%
+  rownames_to_column("genus")
+write_csv(bias_correct_log_table, "../results/outputs/bias_corr_genus.csv")
+```
+
+## Structural zeros
+
+```{r, fig.width=12}
+tab_zero = output$zero_ind
+zero_total = rowSums(tab_zero[, -1])
+idx = which(!zero_total %in% c(0, 4))
+
+df_zero = tab_zero[idx, ] %>%
+  pivot_longer(cols = -taxon, names_to = "group", values_to = "value")
+df_zero$group = recode(df_zero$group, 
+                       `structural_zero (group1 = g1)` = "G1",
+                       `structural_zero (group1 = g2)` = "G2",
+                       `structural_zero (group1 = g3)` = "G3",
+                       `structural_zero (group1 = g4)` = "G4")
+
+df_zero %>% ggplot(aes(x = taxon, y = group, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_manual(name = "Absence", values = c("blue", "red")) +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## ANCOM-BC2 trend test
+
+```{r}
+res_trend = output$res_trend %>%
+  rowwise() %>%
+  filter(grepl("Genus:", taxon)) %>%
+  mutate(taxon = strsplit(taxon, ":")[[1]][2]) %>%
+  ungroup() %>%
+  dplyr::filter(p_val < 0.05) %>%
+  arrange(taxon)
+
+addWorksheet(wb, "group_genus")
+writeData(wb, "group_genus", res_trend)
+
+df_fig = res_trend %>%
+  transmute(taxon, 
+            fc2 = round(exp(lfc_group1g2), 2), 
+            fc3 = round(exp(lfc_group1g3), 2),
+            fc4 = round(exp(lfc_group1g4), 2),
+            p_val, q_val, passed_ss) %>%
+  pivot_longer(fc2:fc4, names_to = "group", values_to = "value") %>%
+  dplyr::mutate(color = ifelse(q_val < 0.05, "seagreen", "black")) %>%
+  arrange(desc(color))
+df_fig$group = recode(df_fig$group, `fc2` = "G2 - G1", 
+                      `fc3` = "G3 - G1", `fc4` = "G4 - G1")
+df_fig$taxon = factor(df_fig$taxon, levels = unique(df_fig$taxon))
+    
+distinct_df = df_fig %>% 
+  select(taxon, color) %>% 
+  distinct()
+tax_color = setNames(distinct_df$color, distinct_df$taxon)
+    
+cell_max = max(abs(df_fig$value))
+fig_group_genus = df_fig %>%
+  ggplot(aes(x = group, y = taxon, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = 1, 
+                       limit = c(0, cell_max), name = NULL) +
+  geom_text(aes(group, taxon, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(color = tax_color))
+```
+
+# Seroconversion status at species level {.tabset}
+
+## Run ANCOMBC-2
+
+```{r, eval=FALSE}
+set.seed(123)
+output = ancombc2(data = tse, assay_name = "counts", tax_level = "Species",
+                  fix_formula = "status + abx_use", rand_formula = NULL,
+                  p_adj_method = "BY", 
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "status", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 4, verbose = TRUE)
+saveRDS(output, "../results/outputs/status_ancombc2_species.rds")
+```
+
+## Visualization
+
+```{r, fig.width=10}
+output = readRDS("../results/outputs/status_ancombc2_species.rds")
+res_prim = output$res %>%
+  rowwise() %>%
+  filter(grepl("Species:", taxon)|grepl("Genus:", taxon)) %>%
+  mutate(taxon = ifelse(grepl("Genus:", taxon), 
+                        paste(strsplit(taxon, ":")[[1]][2], "spp."),
+                        strsplit(taxon, ":")[[1]][2])) %>%
+  ungroup() %>%
+  dplyr::filter(p_statussc < 0.05) %>%
+  arrange(taxon)
+
+addWorksheet(wb, "status_species")
+writeData(wb, "status_species", res_prim)
+
+df_fig = res_prim %>%
+  transmute(taxon, 
+            group = "SC - NC",
+            value = round(exp(lfc_statussc), 2),
+            p_statussc, q_statussc, passed_ss_statussc) %>%
+  dplyr::mutate(color = ifelse(q_statussc < 0.05, "seagreen", "black")) %>%
+  arrange(desc(color))
+df_fig$taxon = factor(df_fig$taxon, levels = unique(df_fig$taxon))
+    
+distinct_df = df_fig %>% 
+  select(taxon, color) %>% 
+  distinct()
+tax_color = setNames(distinct_df$color, distinct_df$taxon)
+
+cell_max = max(abs(df_fig$value))
+fig_status_species = df_fig %>%
+  ggplot(aes(x = group, y = taxon, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = 1, 
+                       limit = c(0, cell_max), name = NULL) +
+  geom_text(aes(group, taxon, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(color = tax_color))
+```
+
+# Seroconversion status at genus level {.tabset}
+
+## Run ANCOMBC-2
+
+```{r, eval=FALSE}
+set.seed(123)
+output = ancombc2(data = tse, assay_name = "counts", tax_level = "Genus",
+                  fix_formula = "status + abx_use", rand_formula = NULL,
+                  p_adj_method = "BY", 
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "status", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 4, verbose = TRUE)
+saveRDS(output, "../results/outputs/status_ancombc2_genus.rds")
+```
+
+## Visualization
+
+```{r, fig.width=10}
+output = readRDS("../results/outputs/status_ancombc2_genus.rds")
+res_prim = output$res %>%
+  rowwise() %>%
+  filter(grepl("Genus:", taxon)) %>%
+  mutate(taxon = strsplit(taxon, ":")[[1]][2]) %>%
+  ungroup() %>%
+  dplyr::filter(p_statussc < 0.05) %>%
+  arrange(taxon)
+
+addWorksheet(wb, "status_genus")
+writeData(wb, "status_genus", res_prim)
+
+df_fig = res_prim %>%
+  transmute(taxon, 
+            group = "SC - NC",
+            value = round(exp(lfc_statussc), 2),
+            p_statussc, q_statussc, passed_ss_statussc) %>%
+  dplyr::mutate(color = ifelse(q_statussc < 0.05, "seagreen", "black")) %>%
+  arrange(desc(color))
+df_fig$taxon = factor(df_fig$taxon, levels = unique(df_fig$taxon))
+    
+distinct_df = df_fig %>% 
+  select(taxon, color) %>% 
+  distinct()
+tax_color = setNames(distinct_df$color, distinct_df$taxon)
+
+cell_max = max(abs(df_fig$value))
+fig_status_genus = df_fig %>%
+  ggplot(aes(x = group, y = taxon, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = 1, 
+                       limit = c(0, cell_max), name = NULL) +
+  geom_text(aes(group, taxon, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(color = tax_color))
+```
+
+# Outputs
+
+```{r}
+saveWorkbook(wb, file = "../results/outputs/res_ancombc2.xlsx", overwrite = TRUE)
+
+p_da = ggarrange(fig_group_species, fig_status_species, ncol = 2, nrow = 1,
+                 common.legend = TRUE, legend = "right", labels = c("a", "b"))
+
+ggsave(file = "../results/figures/main_ancombc2.pdf", plot = p_da, 
+       height = 8, width = 12, units = "in")
+ggsave(file = "../results/figures/main_ancombc2.jpeg", plot = p_da, 
+       height = 8, width = 12, units = "in", dpi = 100)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```

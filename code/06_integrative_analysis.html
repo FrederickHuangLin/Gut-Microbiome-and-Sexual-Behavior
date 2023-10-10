@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<meta name="date" content="2023-10-10" />
+
+<title>Integrative Analyses</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Integrative Analyses</h1>
+<h4 class="date">October 10, 2023</h4>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rm(list = ls())</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">echo=</span><span class="cn">TRUE</span>, <span class="at">warning=</span><span class="cn">FALSE</span>, <span class="at">message=</span><span class="cn">FALSE</span>, </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">comment=</span><span class="cn">NA</span>, <span class="at">fig.width =</span> <span class="fl">6.25</span>, <span class="at">fig.height =</span> <span class="dv">5</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(openxlsx)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(compositions)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse) </span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mia)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(CCA)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DT)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">DT.options =</span> <span class="fu">list</span>(</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">initComplete =</span> <span class="fu">JS</span>(<span class="st">&quot;function(settings, json) {&quot;</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;$(this.api().table().header()).css({&#39;background-color&#39;: </span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="st">  &#39;#000&#39;, &#39;color&#39;: &#39;#fff&#39;});&quot;</span>,<span class="st">&quot;}&quot;</span>)))</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>lm_eqn <span class="ot">=</span> <span class="cf">function</span>(m){</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">=</span> <span class="fu">unname</span>(<span class="fu">coef</span>(m))[<span class="dv">1</span>]</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  b <span class="ot">=</span> <span class="fu">unname</span>(<span class="fu">coef</span>(m))[<span class="dv">2</span>]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  p_val <span class="ot">=</span> <span class="fu">summary</span>(m)<span class="sc">$</span>coef[<span class="dv">2</span>, <span class="st">&quot;Pr(&gt;|t|)&quot;</span>]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  b <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">sign</span>(b) <span class="sc">&gt;=</span> <span class="dv">0</span>, </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>             <span class="fu">paste0</span>(<span class="st">&quot; + &quot;</span>, <span class="fu">format</span>(b, <span class="at">digits =</span> <span class="dv">2</span>)), </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>             <span class="fu">paste0</span>(<span class="st">&quot; - &quot;</span>, <span class="fu">format</span>(<span class="sc">-</span>b, <span class="at">digits =</span> <span class="dv">2</span>)))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  eq <span class="ot">=</span> <span class="fu">substitute</span>(<span class="fu">paste</span>(<span class="fu">italic</span>(y) <span class="sc">==</span> a, b, <span class="fu">italic</span>(x), <span class="st">&quot;, &quot;</span>, <span class="fu">italic</span>(p) <span class="sc">==</span> p_val),</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">list</span>(<span class="at">a =</span> <span class="fu">format</span>(a, <span class="at">digits =</span> <span class="dv">2</span>), <span class="at">b =</span> b,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                       <span class="at">p_val =</span> <span class="fu">format</span>(p_val, <span class="at">digits =</span> <span class="dv">2</span>)))</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">as.character</span>(<span class="fu">as.expression</span>(eq)))              </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plot_scatter <span class="ot">=</span> <span class="cf">function</span>(var_name, tax_name, y_lab) {</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  df_fig <span class="ot">=</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="fu">all_of</span>(<span class="fu">c</span>(var_name, tax_name))) <span class="sc">%&gt;%</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="at">y =</span> var_name) <span class="sc">%&gt;%</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="sc">-</span>y, <span class="at">names_to =</span> <span class="st">&quot;tax&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;x&quot;</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>  df_lm <span class="ot">=</span> df_fig <span class="sc">%&gt;%</span> </span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(tax) <span class="sc">%&gt;%</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">do</span>(<span class="at">fit =</span> <span class="fu">lm</span>(<span class="at">formula =</span> y <span class="sc">~</span> x, <span class="at">data =</span> .)) <span class="sc">%&gt;%</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">eq =</span> <span class="fu">lm_eqn</span>(<span class="at">m =</span> fit))</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>  df_ann <span class="ot">=</span> df_fig <span class="sc">%&gt;%</span> </span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(tax) <span class="sc">%&gt;%</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">y =</span> <span class="fu">ifelse</span>(<span class="fu">mean</span>(y, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">&gt;</span> <span class="dv">0</span>, </span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>                         <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">max</span>(y, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>                         <span class="fl">0.2</span> <span class="sc">*</span> <span class="fu">abs</span>(<span class="fu">mean</span>(y, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))),</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>              <span class="at">x =</span> <span class="fu">median</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">eq =</span> df_lm<span class="sc">$</span>eq,</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>             <span class="at">y_max =</span> <span class="fl">1.05</span> <span class="sc">*</span> y)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  fig <span class="ot">=</span> df_fig <span class="sc">%&gt;%</span> </span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y)) <span class="sc">+</span> </span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.8</span>, <span class="at">color =</span> <span class="st">&quot;#BEAED4&quot;</span>) <span class="sc">+</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">&quot;skyblue&quot;</span>, </span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>                <span class="at">formula =</span> y <span class="sc">~</span> x) <span class="sc">+</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(.<span class="sc">~</span>tax, <span class="at">scales =</span> <span class="st">&quot;free&quot;</span>) <span class="sc">+</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Micorbial abundances&quot;</span>, </span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> y_lab, </span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>         <span class="at">title =</span> <span class="cn">NULL</span>) <span class="sc">+</span> </span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_blank</span>(<span class="at">data =</span> df_ann, <span class="fu">aes</span>(<span class="at">y =</span> y_max)) <span class="sc">+</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="at">data =</span> df_ann, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">label =</span> eq), <span class="at">size =</span> <span class="dv">3</span>, </span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>              <span class="at">parse =</span> <span class="cn">TRUE</span>, <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>) <span class="sc">+</span> </span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">strip.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">&quot;white&quot;</span>),</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>))</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(fig)</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Merged data</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df_v1 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../data/df_v1.csv&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df_v1 <span class="ot">=</span> df_v1 <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(group1 <span class="sc">!=</span> <span class="st">&quot;missing&quot;</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Microbiome data</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>bias_corr_species <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../results/outputs/bias_corr_species.csv&quot;</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>bias_corr_genera <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../results/outputs/bias_corr_genus.csv&quot;</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>bias_corr_species <span class="ot">=</span> bias_corr_species <span class="sc">%&gt;%</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">&quot;Species:&quot;</span>, species)<span class="sc">|</span><span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, species)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">species =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, species), </span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">paste</span>(<span class="fu">strsplit</span>(species, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>], <span class="st">&quot;spp.&quot;</span>),</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">strsplit</span>(species, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>])) <span class="sc">%&gt;%</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>bias_corr_genera <span class="ot">=</span> bias_corr_genera <span class="sc">%&gt;%</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, genus)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">genus =</span> <span class="fu">strsplit</span>(genus, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>]) <span class="sc">%&gt;%</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Significant taxa from ANCOM-BC2</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>sig_species <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_val <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>sig_genera <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_val <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset significant taxa</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span>  bias_corr_species <span class="sc">%&gt;%</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species <span class="sc">%in%</span> sig_species)</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span> <span class="fu">t</span>(df_da_species)</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(df_da_species) <span class="ot">=</span> df_da_species[<span class="dv">1</span>, ]</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span> <span class="fu">data.frame</span>(df_da_species[<span class="sc">-</span><span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;sampleid&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span><span class="dv">1</span>, as.numeric))</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>df_da_species[<span class="fu">is.na</span>(df_da_species)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span>  bias_corr_genera <span class="sc">%&gt;%</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(genus <span class="sc">%in%</span> sig_genera)</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span> <span class="fu">t</span>(df_da_genera)</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(df_da_genera) <span class="ot">=</span> df_da_genera[<span class="dv">1</span>, ]</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span> <span class="fu">data.frame</span>(df_da_genera[<span class="sc">-</span><span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;sampleid&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span><span class="dv">1</span>, as.numeric))</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>df_da_genera[<span class="fu">is.na</span>(df_da_genera)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>df_add_species <span class="ot">=</span> df_v1 <span class="sc">%&gt;%</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(df_da_species, <span class="at">by =</span> <span class="st">&quot;sampleid&quot;</span>)</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>df_add_genus <span class="ot">=</span> df_v1 <span class="sc">%&gt;%</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(df_da_genera, <span class="at">by =</span> <span class="st">&quot;sampleid&quot;</span>)</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>df_add_species <span class="ot">=</span> <span class="fu">data.frame</span>(df_add_species)</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>df_add_genus <span class="ot">=</span> <span class="fu">data.frame</span>(df_add_genus)</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>sig_species <span class="ot">=</span> <span class="fu">make.names</span>(sig_species)</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>sig_genera <span class="ot">=</span> <span class="fu">make.names</span>(sig_genera)</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>wb <span class="ot">=</span> <span class="fu">createWorkbook</span>()</span></code></pre></div>
+<div id="microbiome-vs.-cytokines" class="section level1 tabset">
+<h1 class="tabset">Microbiome vs. cytokines</h1>
+<div id="cytokines-vs.-da-species" class="section level2">
+<h2>Cytokines vs. DA species</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;cbind(crp, cd14, cd163) ~ &quot;</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(sig_species, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>)))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">manova</span>(t_formula, <span class="at">data =</span> df_add_species)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(fit, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>summ</span></code></pre></div>
+<pre><code>                         Df   Pillai approx F num Df den Df  Pr(&gt;F)  
+A.muciniphila             1 0.008356   0.5955      3    212 0.61861  
+A.onderdonkii             1 0.002446   0.1733      3    212 0.91438  
+Anaerovibrio.spp.         1 0.000082   0.0058      3    212 0.99940  
+B.adolescentis            1 0.006561   0.4667      3    212 0.70582  
+B.caccae                  1 0.003810   0.2703      3    212 0.84677  
+B.fragilis                1 0.017932   1.2903      3    212 0.27870  
+B.uniformis               1 0.018970   1.3665      3    212 0.25402  
+Bacteroides.spp.          1 0.003749   0.2659      3    212 0.84993  
+Bifidobacterium.spp.      1 0.019000   1.3687      3    212 0.25333  
+Butyricimonas.spp.        1 0.016086   1.1553      3    212 0.32783  
+C.celatum                 1 0.012089   0.8648      3    212 0.46019  
+Dehalobacterium.spp.      1 0.008515   0.6069      3    212 0.61119  
+Lachnobacterium.spp.      1 0.010695   0.7639      3    212 0.51543  
+Lachnospira.spp.          1 0.043577   3.2197      3    212 0.02368 *
+Megasphaera.spp.          1 0.007058   0.5023      3    212 0.68109  
+Methanobrevibacter.spp.   1 0.009872   0.7046      3    212 0.55024  
+Odoribacter.spp.          1 0.005665   0.4026      3    212 0.75125  
+Paraprevotella.spp.       1 0.011831   0.8461      3    212 0.47005  
+RFN20.spp.                1 0.038398   2.8218      3    212 0.03984 *
+Succinivibrio.spp.        1 0.026205   1.9016      3    212 0.13035  
+Residuals               214                                          
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>stats) <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;Taxon&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">transmute</span>(Taxon,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">approx.F =</span> <span class="fu">signif</span>(approx.F, <span class="dv">2</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                   num.Df, den.Df, </span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">P =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">Pr..F.</span><span class="st">`</span>, <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Taxon <span class="sc">!=</span> <span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cyto_species&quot;</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cyto_species&quot;</span>, df_summ)</span></code></pre></div>
+</div>
+<div id="cytokines-vs.-da-genera" class="section level2">
+<h2>Cytokines vs. DA genera</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;cbind(crp, cd14, cd163) ~ &quot;</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(sig_genera, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>)))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">manova</span>(t_formula, <span class="at">data =</span> df_add_genus)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(fit, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>summ</span></code></pre></div>
+<pre><code>                    Df   Pillai approx F num Df den Df  Pr(&gt;F)   
+Akkermansia          1 0.008323   0.6043      3    216 0.61290   
+Alistipes            1 0.005855   0.4240      3    216 0.73598   
+Anaerovibrio         1 0.000012   0.0008      3    216 0.99997   
+Bacteroides          1 0.003886   0.2809      3    216 0.83916   
+Bifidobacterium      1 0.000214   0.0154      3    216 0.99738   
+Butyricimonas        1 0.016467   1.2055      3    216 0.30867   
+Dehalobacterium      1 0.007827   0.5680      3    216 0.63666   
+Lachnobacterium      1 0.010100   0.7346      3    216 0.53239   
+Lachnospira          1 0.044985   3.3915      3    216 0.01887 * 
+Lactococcus          1 0.024489   1.8075      3    216 0.14676   
+Megasphaera          1 0.006193   0.4486      3    216 0.71851   
+Methanobrevibacter   1 0.012737   0.9289      3    216 0.42759   
+Odoribacter          1 0.003058   0.2209      3    216 0.88185   
+Paraprevotella       1 0.014161   1.0343      3    216 0.37828   
+RFN20                1 0.054476   4.1482      3    216 0.00696 **
+Succinivibrio        1 0.027284   2.0196      3    216 0.11214   
+Residuals          218                                           
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>stats) <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;Taxon&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">transmute</span>(Taxon,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">approx.F =</span> <span class="fu">signif</span>(approx.F, <span class="dv">2</span>),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                   num.Df, den.Df, </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">P =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">Pr..F.</span><span class="st">`</span>, <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Taxon <span class="sc">!=</span> <span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cyto_genera&quot;</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cyto_genera&quot;</span>, df_summ)</span></code></pre></div>
+</div>
+</div>
+<div id="microbiome-vs.-scfas" class="section level1 tabset">
+<h1 class="tabset">Microbiome vs. SCFAs</h1>
+<div id="scfas-vs.-da-species" class="section level2">
+<h2>SCFAs vs. DA species</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;cbind(acetate, valerate) ~ &quot;</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(sig_species, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>)))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">manova</span>(t_formula, <span class="at">data =</span> df_add_species)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(fit, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>summ</span></code></pre></div>
+<pre><code>                         Df   Pillai approx F num Df den Df  Pr(&gt;F)   
+A.muciniphila             1 0.004696   0.4624      2    196 0.63047   
+A.onderdonkii             1 0.002037   0.2000      2    196 0.81890   
+Anaerovibrio.spp.         1 0.007019   0.6927      2    196 0.50143   
+B.adolescentis            1 0.001395   0.1369      2    196 0.87218   
+B.caccae                  1 0.009612   0.9512      2    196 0.38807   
+B.fragilis                1 0.020457   2.0467      2    196 0.13192   
+B.uniformis               1 0.060359   6.2952      2    196 0.00224 **
+Bacteroides.spp.          1 0.012146   1.2049      2    196 0.30192   
+Bifidobacterium.spp.      1 0.001698   0.1667      2    196 0.84656   
+Butyricimonas.spp.        1 0.024454   2.4566      2    196 0.08836 . 
+C.celatum                 1 0.009003   0.8903      2    196 0.41220   
+Dehalobacterium.spp.      1 0.015251   1.5177      2    196 0.22178   
+Lachnobacterium.spp.      1 0.001698   0.1667      2    196 0.84655   
+Lachnospira.spp.          1 0.003468   0.3410      2    196 0.71147   
+Megasphaera.spp.          1 0.035376   3.5940      2    196 0.02931 * 
+Methanobrevibacter.spp.   1 0.017202   1.7153      2    196 0.18261   
+Odoribacter.spp.          1 0.001740   0.1708      2    196 0.84310   
+Paraprevotella.spp.       1 0.023803   2.3896      2    196 0.09433 . 
+RFN20.spp.                1 0.016776   1.6721      2    196 0.19051   
+Succinivibrio.spp.        1 0.033204   3.3658      2    196 0.03654 * 
+Residuals               197                                           
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>stats) <span class="sc">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;Taxon&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">transmute</span>(Taxon,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">approx.F =</span> <span class="fu">signif</span>(approx.F, <span class="dv">2</span>),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                   num.Df, den.Df, </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">P =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">Pr..F.</span><span class="st">`</span>, <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Taxon <span class="sc">!=</span> <span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;scfa_species&quot;</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;scfa_species&quot;</span>, df_summ)</span></code></pre></div>
+</div>
+<div id="scfas-vs.-da-genera" class="section level2">
+<h2>SCFAs vs. DA genera</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;cbind(acetate, valerate) ~ &quot;</span>,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(sig_genera, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>)))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">manova</span>(t_formula, <span class="at">data =</span> df_add_genus)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(fit, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>summ</span></code></pre></div>
+<pre><code>                    Df   Pillai approx F num Df den Df   Pr(&gt;F)   
+Akkermansia          1 0.004570   0.4591      2    200 0.632523   
+Alistipes            1 0.022289   2.2797      2    200 0.104970   
+Anaerovibrio         1 0.007372   0.7427      2    200 0.477142   
+Bacteroides          1 0.023838   2.4421      2    200 0.089571 . 
+Bifidobacterium      1 0.004915   0.4939      2    200 0.610959   
+Butyricimonas        1 0.027583   2.8365      2    200 0.060990 . 
+Dehalobacterium      1 0.017307   1.7612      2    200 0.174496   
+Lachnobacterium      1 0.002832   0.2840      2    200 0.753071   
+Lachnospira          1 0.001644   0.1646      2    200 0.848317   
+Lactococcus          1 0.004318   0.4337      2    200 0.648720   
+Megasphaera          1 0.046104   4.8333      2    200 0.008914 **
+Methanobrevibacter   1 0.019456   1.9842      2    200 0.140189   
+Odoribacter          1 0.006316   0.6356      2    200 0.530668   
+Paraprevotella       1 0.022538   2.3058      2    200 0.102322   
+RFN20                1 0.019666   2.0061      2    200 0.137216   
+Succinivibrio        1 0.035960   3.7301      2    200 0.025675 * 
+Residuals          201                                            
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>stats) <span class="sc">%&gt;%</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;Taxon&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">transmute</span>(Taxon,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">approx.F =</span> <span class="fu">signif</span>(approx.F, <span class="dv">2</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                   num.Df, den.Df, </span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">P =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">Pr..F.</span><span class="st">`</span>, <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Taxon <span class="sc">!=</span> <span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;scfa_genera&quot;</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;scfa_genera&quot;</span>, df_summ)</span></code></pre></div>
+</div>
+</div>
+<div id="cytokines-vs.-scfas" class="section level1">
+<h1>Cytokines vs. SCFAs</h1>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">manova</span>(<span class="fu">cbind</span>(crp, cd14, cd163) <span class="sc">~</span> </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>               acetate <span class="sc">+</span> valerate, </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> df_v1)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(fit, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>summ</span></code></pre></div>
+<pre><code>           Df   Pillai approx F num Df den Df  Pr(&gt;F)  
+acetate     1 0.033928   2.5286      3    216 0.05826 .
+valerate    1 0.016705   1.2232      3    216 0.30217  
+Residuals 218                                          
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>stats) <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;Taxon&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">transmute</span>(Taxon,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">approx.F =</span> <span class="fu">signif</span>(approx.F, <span class="dv">2</span>),</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                   num.Df, den.Df, </span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">P =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">Pr..F.</span><span class="st">`</span>, <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Taxon <span class="sc">!=</span> <span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cyto_scfa&quot;</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cyto_scfa&quot;</span>, df_summ)</span></code></pre></div>
+</div>
+<div id="outputs" class="section level1">
+<h1>Outputs</h1>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveWorkbook</span>(wb, <span class="at">file =</span> <span class="st">&quot;../results/outputs/res_integrate.xlsx&quot;</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="session-information" class="section level1">
+<h1>Session information</h1>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div>
+<pre><code>R version 4.2.2 (2022-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Monterey 12.6.8
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] splines   stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] DT_0.26                        CCA_1.2.1                     
+ [3] fields_14.1                    viridis_0.6.2                 
+ [5] viridisLite_0.4.1              spam_2.9-1                    
+ [7] fda_6.0.5                      deSolve_1.34                  
+ [9] fds_1.8                        RCurl_1.98-1.9                
+[11] rainbow_3.7                    pcaPP_2.0-3                   
+[13] MASS_7.3-58.1                  ggpubr_0.5.0                  
+[15] mia_1.6.0                      MultiAssayExperiment_1.24.0   
+[17] TreeSummarizedExperiment_2.6.0 Biostrings_2.66.0             
+[19] XVector_0.38.0                 SingleCellExperiment_1.20.0   
+[21] SummarizedExperiment_1.28.0    Biobase_2.58.0                
+[23] GenomicRanges_1.50.2           GenomeInfoDb_1.34.5           
+[25] IRanges_2.32.0                 S4Vectors_0.36.1              
+[27] BiocGenerics_0.44.0            MatrixGenerics_1.10.0         
+[29] matrixStats_0.63.0             forcats_0.5.2                 
+[31] stringr_1.5.0                  dplyr_1.0.10                  
+[33] purrr_1.0.0                    tidyr_1.2.1                   
+[35] tibble_3.1.8                   ggplot2_3.4.0                 
+[37] tidyverse_1.3.2                compositions_2.0-4            
+[39] openxlsx_4.2.5.1               readr_2.1.3                   
+
+loaded via a namespace (and not attached):
+  [1] readxl_1.4.1                backports_1.4.1            
+  [3] plyr_1.8.8                  lazyeval_0.2.2             
+  [5] BiocParallel_1.32.5         scater_1.26.1              
+  [7] digest_0.6.31               yulab.utils_0.0.6          
+  [9] htmltools_0.5.4             fansi_1.0.3                
+ [11] magrittr_2.0.3              memoise_2.0.1              
+ [13] ScaledMatrix_1.6.0          googlesheets4_1.0.1        
+ [15] cluster_2.1.4               ks_1.14.0                  
+ [17] DECIPHER_2.26.0             hdrcde_3.4                 
+ [19] tzdb_0.3.0                  modelr_0.1.10              
+ [21] bayesm_3.1-5                vroom_1.6.0                
+ [23] timechange_0.1.1            colorspace_2.0-3           
+ [25] blob_1.2.3                  rvest_1.0.3                
+ [27] ggrepel_0.9.2               haven_2.5.1                
+ [29] xfun_0.36                   crayon_1.5.2               
+ [31] jsonlite_1.8.4              ape_5.6-2                  
+ [33] glue_1.6.2                  gtable_0.3.1               
+ [35] gargle_1.2.1                zlibbioc_1.44.0            
+ [37] DelayedArray_0.24.0         car_3.1-1                  
+ [39] BiocSingular_1.14.0         maps_3.4.1                 
+ [41] DEoptimR_1.0-11             abind_1.4-5                
+ [43] scales_1.2.1                mvtnorm_1.2-2              
+ [45] DBI_1.1.3                   rstatix_0.7.1              
+ [47] Rcpp_1.0.10                 decontam_1.18.0            
+ [49] tidytree_0.4.2              mclust_6.0.0               
+ [51] bit_4.0.5                   rsvd_1.0.5                 
+ [53] dotCall64_1.0-2             htmlwidgets_1.6.0          
+ [55] httr_1.4.4                  ellipsis_0.3.2             
+ [57] pkgconfig_2.0.3             scuttle_1.8.3              
+ [59] sass_0.4.4                  dbplyr_2.2.1               
+ [61] utf8_1.2.2                  tidyselect_1.2.0           
+ [63] rlang_1.0.6                 reshape2_1.4.4             
+ [65] munsell_0.5.0               cellranger_1.1.0           
+ [67] tools_4.2.2                 cachem_1.0.6               
+ [69] cli_3.5.0                   DirichletMultinomial_1.40.0
+ [71] generics_0.1.3              RSQLite_2.2.20             
+ [73] broom_1.0.2                 evaluate_0.19              
+ [75] fastmap_1.1.0               yaml_2.3.6                 
+ [77] knitr_1.41                  bit64_4.0.5                
+ [79] fs_1.5.2                    zip_2.2.2                  
+ [81] robustbase_0.95-0           nlme_3.1-160               
+ [83] sparseMatrixStats_1.10.0    pracma_2.4.2               
+ [85] xml2_1.3.3                  compiler_4.2.2             
+ [87] rstudioapi_0.14             beeswarm_0.4.0             
+ [89] ggsignif_0.6.4              reprex_2.0.2               
+ [91] treeio_1.22.0               bslib_0.4.2                
+ [93] stringi_1.7.8               lattice_0.20-45            
+ [95] Matrix_1.5-1                vegan_2.6-4                
+ [97] permute_0.9-7               tensorA_0.36.2             
+ [99] vctrs_0.5.1                 pillar_1.8.1               
+[101] lifecycle_1.0.3             jquerylib_0.1.4            
+[103] BiocNeighbors_1.16.0        bitops_1.0-7               
+[105] irlba_2.3.5.1               R6_2.5.1                   
+[107] KernSmooth_2.23-20          gridExtra_2.3              
+[109] vipor_0.4.5                 codetools_0.2-18           
+[111] assertthat_0.2.1            withr_2.5.0                
+[113] GenomeInfoDbData_1.2.9      mgcv_1.8-41                
+[115] parallel_4.2.2              hms_1.1.2                  
+[117] grid_4.2.2                  beachmat_2.14.0            
+[119] rmarkdown_2.19              DelayedMatrixStats_1.20.0  
+[121] carData_3.0-5               googledrive_2.0.0          
+[123] lubridate_1.9.0             ggbeeswarm_0.7.1           </code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

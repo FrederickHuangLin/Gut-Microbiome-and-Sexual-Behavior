@@ -1,0 +1,503 @@
+---
+title: "Mediation Analyses"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
+                      message = FALSE, comment = NA,
+                      fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(openxlsx)
+library(tidyverse) 
+library(microbiome)
+library(mia)
+library(compositions)
+library(medflex)
+library(ggsci)
+library(ggpubr)
+```
+
+```{r helper}
+# Estimate coefficients under constraints
+constrain_est = function(beta_hat, vcov_hat, contrast, solver = "ECOS") {
+    beta_opt = CVXR::Variable(rows = length(beta_hat), cols = 1, name = "beta")
+    obj = CVXR::Minimize(CVXR::matrix_frac(beta_opt - beta_hat, vcov_hat))
+    cons = suppressMessages(contrast %*% beta_opt >= 0)
+    problem = CVXR::Problem(objective = obj, constraints = list(cons))
+
+    suppressMessages(result <- try(CVXR::solve(problem, solver = solver),
+                                   silent = TRUE))
+
+    if (inherits(result, "try-error")) {
+        beta_opt = rep(0, length(beta_hat))
+    } else {
+        beta_opt = as.numeric(result$getValue(beta_opt))
+    }
+    return(beta_opt)
+}
+
+# Compute the l_infty norm for a pattern
+l_infty = function(beta_opt, node) {
+    l = max(abs(beta_opt[node]),
+            abs(beta_opt[node] - beta_opt[length(beta_opt)]),
+            na.rm = TRUE)
+    return(l)
+}
+
+# Trend test
+trend_test = function(beta_hat, vcov_hat, contrast, solver = "ECOS",
+                      node, B = 1000) {
+  beta_opt = constrain_est(beta_hat = beta_hat, 
+                           vcov_hat = vcov_hat, 
+                           contrast = contrast,
+                           solver = solver)
+  l_opt = l_infty(beta = beta_opt, node = node)
+  beta_null = MASS::mvrnorm(n = B, 
+                            mu = rep(0, length(beta_hat)), 
+                            Sigma = vcov_hat)
+  l_null = apply(beta_null, 1, function(x) {
+    beta_trend = constrain_est(beta_hat = x, 
+                               vcov_hat = vcov_hat, 
+                               contrast = contrast,
+                               solver = solver)
+    l_trend = l_infty(beta = beta_trend, node = node)
+  })
+  p_trend = 1/B * sum(l_null > l_opt)
+  res = list(estimate = beta_opt,
+             test_statistic = l_opt,
+             p_value = p_trend)
+  return(res)
+}
+
+contrast_mat = matrix(c(1, 0, 0, 
+                        -1, 1, 0,
+                        0, -1, 1),
+                      nrow = 3, byrow = TRUE)
+```
+
+# Import data
+
+```{r}
+# Merged data
+df_v1 = read_csv("../data/df_v1.csv")
+df_v1 = df_v1 %>%
+  filter(group1 != "missing",
+         druguse != "missing")
+
+# Microbiome data
+bias_corr_species = read_csv("../results/outputs/bias_corr_species.csv")
+bias_corr_genera = read_csv("../results/outputs/bias_corr_genus.csv")
+
+bias_corr_species = bias_corr_species %>%
+  rowwise() %>%
+  filter(grepl("Species:", species)|grepl("Genus:", species)) %>%
+  mutate(species = ifelse(grepl("Genus:", species), 
+                        paste(strsplit(species, ":")[[1]][2], "spp."),
+                        strsplit(species, ":")[[1]][2])) %>%
+  ungroup() 
+
+bias_corr_genera = bias_corr_genera %>%
+  rowwise() %>%
+  filter(grepl("Genus:", genus)) %>%
+  mutate(genus = strsplit(genus, ":")[[1]][2]) %>%
+  ungroup() 
+
+# Significant taxa by group
+sig_species1 = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 1) %>%
+  filter(p_val < 0.05) %>%
+  .$taxon
+sig_genera1 = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 2) %>%
+  filter(p_val < 0.05) %>%
+  .$taxon
+# Significant taxa by status
+sig_species2 = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 3) %>%
+  filter(p_statussc < 0.05) %>%
+  .$taxon
+sig_genera2 = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 4) %>%
+  filter(p_statussc < 0.05) %>%
+  .$taxon
+
+sig_genera = sort(base::intersect(sig_genera1, sig_genera2))
+sig_species = sort(base::intersect(sig_species1, sig_species2))
+
+# Subset significant taxa
+df_da_species =  bias_corr_species %>%
+  filter(species %in% sig_species)
+df_da_species = t(df_da_species)
+colnames(df_da_species) = df_da_species[1, ]
+df_da_species = data.frame(df_da_species[-1, , drop = FALSE], check.names = FALSE) %>%
+  rownames_to_column("sampleid") %>%
+  mutate(across(-1, as.numeric))
+
+df_da_genera =  bias_corr_genera %>%
+  filter(genus %in% sig_genera)
+df_da_genera = t(df_da_genera)
+colnames(df_da_genera) = df_da_genera[1, ]
+df_da_genera = data.frame(df_da_genera[-1, , drop = FALSE], check.names = FALSE) %>%
+  rownames_to_column("sampleid") %>%
+  mutate(across(-1, as.numeric))
+
+# Exposure, outcome, confounders, and potential mediators
+# cytokines overlap: sCD14 and sCD163
+# SCFA overlap: none
+df_causal = df_v1 %>%
+  dplyr::select(sampleid, group1, status, druguse, cd14, cd163) %>%
+  dplyr::left_join(df_da_species, by = "sampleid") %>%
+  dplyr::left_join(df_da_genera, by = "sampleid")
+df_causal$status = factor(df_causal$status)
+df_causal$group1 = factor(df_causal$group1)
+df_causal$druguse = factor(df_causal$druguse)
+df_causal = data.frame(df_causal)
+
+# ne_trend_test = list()
+ne_trend_test = readRDS("../results/outputs/ne_trend_test.rds")
+wb = createWorkbook()
+```
+
+# Cytokine mediators {.tabset}
+
+## All cytokines
+
+```{r}
+# Natural effects model
+df = df_causal %>%
+  dplyr::select(status, group1, cd14, cd163, druguse) %>%
+  drop_na()
+
+df_exp = neImpute(status ~ group1 + cd14 + cd163 + druguse,
+                  family = binomial("logit"), nMed = 2, data = df)
+ne_mod = neModel(status ~ group10 + group11 + druguse,
+                 family = binomial("logit"), expData = df_exp, se = "robust")
+summ = summary(ne_mod)
+df_summ = data.frame(summ$coefficients)
+
+# Trend test
+# set.seed(123)
+# trend_nde = trend_test(beta_hat = summ$coefficients[2:4, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[2:4, 2:4],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# set.seed(123)
+# trend_nie = trend_test(beta_hat = summ$coefficients[5:7, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[5:7, 5:7],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# 
+# ne_trend_test = base::append(ne_trend_test,
+#                              list(cyto_nde = trend_nde, cyto_nie = trend_nie))
+
+# Outputs
+types = c("nde", "nie")
+groups = c("g2", "g3", "g4")
+res = data.frame(type = rep(types, each = length(groups)), 
+                 group = rep(groups, length(types)), 
+                 estimate = NA, se = NA, p = NA,
+                 trend_p = NA)
+res$estimate = round(df_summ$Estimate[2:7], 2)
+res$se = round(df_summ$Std..Error[2:7], 2)
+res$p = round(df_summ$Pr...z..[2:7], 3)
+res$trend_p[3] = round(ne_trend_test$cyto_nde$p_value, 3)
+res$trend_p[6] = round(ne_trend_test$cyto_nie$p_value, 3)
+
+addWorksheet(wb, "cytokines")
+writeData(wb, "cytokines", res)
+```
+
+## Individual cytokines
+
+```{r}
+features = c("cd14", "cd163")
+groups = c("g2", "g3", "g4")
+res_nde = data.frame(type = "nde",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+res_nie = data.frame(type = "nie",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+
+for (i in seq_along(features)) {
+  df = df_causal %>%
+    dplyr::select(status, group1, druguse, all_of(features[i])) %>%
+    drop_na()
+
+  t_formula = as.formula(paste0("status ~ group1 + ", features[i], " + druguse"))
+  df_exp = neImpute(t_formula, family = binomial("logit"), data = df)
+  ne_mod = neModel(status ~ group10 + group11 + druguse,
+                   family = binomial("logit"), expData = df_exp, se = "robust")
+  summ = summary(ne_mod)
+  
+  idx = seq_along(groups) + (i - 1) * length(groups)
+  res_nde[idx, "estimate"] = round(summ$coefficients[2:4, "Estimate"], 2)
+  res_nde[idx, "se"] = round(summ$coefficients[2:4, "Std. Error"], 2)
+  res_nde[idx, "p"] = round(summ$coefficients[2:4, "Pr(>|z|)"], 3)
+  
+  res_nie[idx, "estimate"] = round(summ$coefficients[5:7, "Estimate"], 2)
+  res_nie[idx, "se"] = round(summ$coefficients[5:7, "Std. Error"], 2)
+  res_nie[idx, "p"] = round(summ$coefficients[5:7, "Pr(>|z|)"], 3)
+}
+
+res = rbind(res_nde, res_nie)
+addWorksheet(wb, "cytokines_individual")
+writeData(wb, "cytokines_individual", res)
+```
+
+# Microbial species {.tabset}
+
+## All species 
+
+The combination of `r paste0(sig_species, collapse = ", ")`
+
+```{r}
+# Natural effects model
+all_species = colnames(df_causal)[7:15]
+df = df_causal %>%
+  dplyr::select(status, group1, druguse, all_of(all_species))
+df[is.na(df)] = 0
+
+t_formula = as.formula(paste0("status ~ group1 + ", 
+                              paste0(all_species, collapse = " + "), 
+                              " + druguse"))
+df_exp = neImpute(t_formula,
+                  family = binomial("logit"), nMed = length(all_species), data = df)
+ne_mod = neModel(status ~ group10 + group11 + druguse,
+                 family = binomial("logit"), expData = df_exp, se = "robust")
+summ = summary(ne_mod)
+df_summ = data.frame(summ$coefficients)
+
+# Trend test
+# set.seed(123)
+# trend_nde = trend_test(beta_hat = summ$coefficients[2:4, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[2:4, 2:4],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# set.seed(123)
+# trend_nie = trend_test(beta_hat = summ$coefficients[5:7, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[5:7, 5:7],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# 
+# ne_trend_test = base::append(ne_trend_test,
+#                              list(species_nde = trend_nde, species_nie = trend_nie))
+
+# Outputs
+type = c("nde", "nie")
+groups = c("g2", "g3", "g4")
+res = data.frame(type = rep(types, each = length(groups)), 
+                 group = rep(groups, length(type)), 
+                 estimate = NA, se = NA, p = NA,
+                 trend_p = NA)
+res$estimate = round(df_summ$Estimate[2:7], 2)
+res$se = round(df_summ$Std..Error[2:7], 2)
+res$p = round(df_summ$Pr...z..[2:7], 3)
+res$trend_p[3] = round(ne_trend_test$species_nde$p_value, 3)
+res$trend_p[6] = round(ne_trend_test$species_nie$p_value, 3)
+
+addWorksheet(wb, "species")
+writeData(wb, "species", res)
+```
+
+## Individual species
+
+```{r}
+features = sort(all_species)
+groups = c("g2", "g3", "g4")
+res_nde = data.frame(type = "nde",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+res_nie = data.frame(type = "nie",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+
+for (i in seq_along(features)) {
+  df = df_causal %>%
+    dplyr::select(status, group1, druguse, all_of(features[i])) %>%
+    drop_na()
+
+  t_formula = as.formula(paste0("status ~ group1 + ", features[i], " + druguse"))
+  df_exp = neImpute(t_formula, family = binomial("logit"), data = df)
+  ne_mod = neModel(status ~ group10 + group11 + druguse,
+                   family = binomial("logit"), expData = df_exp, se = "robust")
+  summ = summary(ne_mod)
+  
+  idx = seq_along(groups) + (i - 1) * length(groups)
+  res_nde[idx, "estimate"] = round(summ$coefficients[2:4, "Estimate"], 2)
+  res_nde[idx, "se"] = round(summ$coefficients[2:4, "Std. Error"], 2)
+  res_nde[idx, "p"] = round(summ$coefficients[2:4, "Pr(>|z|)"], 3)
+  
+  res_nie[idx, "estimate"] = round(summ$coefficients[5:7, "Estimate"], 2)
+  res_nie[idx, "se"] = round(summ$coefficients[5:7, "Std. Error"], 2)
+  res_nie[idx, "p"] = round(summ$coefficients[5:7, "Pr(>|z|)"], 3)
+}
+
+res = rbind(res_nde, res_nie)
+addWorksheet(wb, "species_individual")
+writeData(wb, "species_individual", res)
+```
+
+# Microbial genera {.tabset}
+
+## All genera 
+
+The combination of `r paste0(sig_genera, collapse = ", ")`
+
+```{r}
+# Natural effects model
+all_genera = colnames(df_da_genera)[-1]
+df = df_causal %>%
+  dplyr::select(status, group1, druguse, all_of(all_genera))
+df[is.na(df)] = 0
+
+t_formula = as.formula(paste0("status ~ group1 + ", 
+                              paste0(all_genera, collapse = " + "), 
+                              " + druguse"))
+df_exp = neImpute(t_formula,
+                  family = binomial("logit"), nMed = length(all_genera), data = df)
+ne_mod = neModel(status ~ group10 + group11 + druguse,
+                 family = binomial("logit"), expData = df_exp, se = "robust")
+summ = summary(ne_mod)
+df_summ = data.frame(summ$coefficients)
+
+# Trend test
+# set.seed(123)
+# trend_nde = trend_test(beta_hat = summ$coefficients[2:4, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[2:4, 2:4],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# set.seed(123)
+# trend_nie = trend_test(beta_hat = summ$coefficients[5:7, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[5:7, 5:7],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# 
+# ne_trend_test = base::append(ne_trend_test,
+#                              list(genera_nde = trend_nde, genera_nie = trend_nie))
+
+# Outputs
+types = c("nde", "nie")
+groups = c("g2", "g3", "g4")
+res = data.frame(type = rep(types, each = length(groups)), 
+                 group = rep(groups, length(types)), 
+                 estimate = NA, se = NA, p = NA,
+                 trend_p = NA)
+res$estimate = round(df_summ$Estimate[2:7], 2)
+res$se = round(df_summ$Std..Error[2:7], 2)
+res$p = round(df_summ$Pr...z..[2:7], 3)
+res$trend_p[3] = round(ne_trend_test$genera_nde$p_value, 3)
+res$trend_p[6] = round(ne_trend_test$genera_nie$p_value, 3)
+
+addWorksheet(wb, "genera")
+writeData(wb, "genera", res)
+```
+
+## Individual genera
+
+```{r}
+features = sort(all_genera)
+groups = c("g2", "g3", "g4")
+res_nde = data.frame(type = "nde",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+res_nie = data.frame(type = "nie",
+                     feature = rep(features, each = length(groups)), 
+                     group = rep(groups, length(features)), 
+                     estimate = NA, se = NA, p = NA)
+
+for (i in seq_along(features)) {
+  df = df_causal %>%
+    dplyr::select(status, group1, druguse, all_of(features[i])) %>%
+    drop_na()
+
+  t_formula = as.formula(paste0("status ~ group1 + ", features[i], " + druguse"))
+  df_exp = neImpute(t_formula, family = binomial("logit"), data = df)
+  ne_mod = neModel(status ~ group10 + group11 + druguse,
+                   family = binomial("logit"), expData = df_exp, se = "robust")
+  summ = summary(ne_mod)
+  
+  idx = seq_along(groups) + (i - 1) * length(groups)
+  res_nde[idx, "estimate"] = round(summ$coefficients[2:4, "Estimate"], 2)
+  res_nde[idx, "se"] = round(summ$coefficients[2:4, "Std. Error"], 2)
+  res_nde[idx, "p"] = round(summ$coefficients[2:4, "Pr(>|z|)"], 3)
+  
+  res_nie[idx, "estimate"] = round(summ$coefficients[5:7, "Estimate"], 2)
+  res_nie[idx, "se"] = round(summ$coefficients[5:7, "Std. Error"], 2)
+  res_nie[idx, "p"] = round(summ$coefficients[5:7, "Pr(>|z|)"], 3)
+}
+
+res = rbind(res_nde, res_nie)
+addWorksheet(wb, "genera_individual")
+writeData(wb, "genera_individual", res)
+```
+
+# Combine cytokines and DA species
+
+```{r}
+# Natural effects model
+all_mediators = c(all_species, "cd14", "cd163")
+df = df_causal %>%
+  dplyr::select(status, group1, druguse, all_of(all_mediators))
+df[is.na(df)] = 0
+
+t_formula = as.formula(paste0("status ~ group1 + ", 
+                              paste0(all_mediators, collapse = " + "), 
+                              " + druguse"))
+df_exp = neImpute(t_formula,
+                  family = binomial("logit"), nMed = length(all_mediators), data = df)
+ne_mod = neModel(status ~ group10 + group11 + druguse,
+                 family = binomial("logit"), expData = df_exp, se = "robust")
+summ = summary(ne_mod)
+df_summ = data.frame(summ$coefficients)
+
+# Trend test
+# set.seed(123)
+# trend_nde = trend_test(beta_hat = summ$coefficients[2:4, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[2:4, 2:4],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# set.seed(123)
+# trend_nie = trend_test(beta_hat = summ$coefficients[5:7, "Estimate"],
+#                        vcov_hat = ne_mod$vcov[5:7, 5:7],
+#                        contrast = contrast_mat,
+#                        node = 3, B = 1000)
+# 
+# ne_trend_test = base::append(ne_trend_test,
+#                              list(all_nde = trend_nde, all_nie = trend_nie))
+
+# Outputs
+types = c("nde", "nie")
+groups = c("g2", "g3", "g4")
+res = data.frame(type = rep(types, each = length(groups)), 
+                 group = rep(groups, length(types)), 
+                 estimate = NA, se = NA, p = NA,
+                 trend_p = NA)
+res$estimate = round(df_summ$Estimate[2:7], 2)
+res$se = round(df_summ$Std..Error[2:7], 2)
+res$p = round(df_summ$Pr...z..[2:7], 3)
+res$trend_p[3] = round(ne_trend_test$all_nde$p_value, 3)
+res$trend_p[6] = round(ne_trend_test$all_nie$p_value, 3)
+
+addWorksheet(wb, "cytokines_and_species")
+writeData(wb, "cytokines_and_species", res)
+```
+
+# Outputs
+
+```{r}
+saveWorkbook(wb, file = "../results/outputs/res_mediate.xlsx", overwrite = TRUE)
+# saveRDS(ne_trend_test, file = "../results/outputs/ne_trend_test.rds")
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```
+

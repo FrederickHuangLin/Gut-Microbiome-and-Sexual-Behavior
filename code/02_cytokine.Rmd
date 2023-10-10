@@ -1,0 +1,591 @@
+---
+title: "Analyses of Cytokines"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
+                      message = FALSE, comment = NA,
+                      fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(tidyverse) 
+library(CLME)
+library(magrittr)
+library(qwraps2)
+library(ggprism)
+library(ggsci)
+library(ggpubr)
+library(rstatix)
+library(kableExtra)
+options(digits = 3)
+```
+
+```{r helper}
+plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
+  overall_p = clme_obj$p.value
+  ind_p = clme_obj$p.value.ind
+  est_mean = clme_obj$theta[group]
+  est_se = sqrt(diag(clme_obj$cov.theta))[group]
+  
+  df_fig = data.frame(x = group, y = est_mean, err = est_se)
+  
+  if (est_mean[2] < est_mean[length(est_mean)]) {
+    start_p_pos = est_mean[2] + p_gap
+    end_p_pos = max(est_mean) + p_gap
+  } else if (est_mean[2] > est_mean[length(est_mean)]) {
+    start_p_pos = max(est_mean) + p_gap
+    end_p_pos = min(est_mean) + p_gap
+  } else {
+    if (trend == "increase") {
+      start_p_pos = est_mean[2] + p_gap
+      end_p_pos = max(est_mean) + 2 * p_gap
+    } else {
+      start_p_pos = max(est_mean) + 2 * p_gap
+      end_p_pos = min(est_mean) + p_gap
+    }
+  }
+  
+  df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
+                    group2 = group[-1],
+                    x = group[-1],
+                    label = paste0("p = ", round(ind_p, 3)),
+                    y.position = seq.int(from = start_p_pos, 
+                                         to = end_p_pos, 
+                                         length.out = length(group) - 1))
+  df_ann = data.frame(x = group[1], y = ann_pos,
+                      fill = "white",
+                      label = paste0("Trend p-value = ", round(overall_p, 3)))
+  
+  fig = df_fig %>%
+    ggplot(aes(x = x, y = y)) +
+    geom_bar(stat = "identity", color = "black", aes(fill = x)) + 
+    geom_errorbar(aes(ymin = y - 1.96 * err, ymax = y + 1.96 * err), 
+                  width = .2, position = position_dodge(.9)) +
+    add_pvalue(df_p,
+               xmin = "group1",
+               xmax = "group2",
+               label = "label",
+               y.position = "y.position",
+               remove.bracket = FALSE, 
+               ...) +
+    geom_label(data = df_ann, aes(x = x, y = y, label = label), 
+               size = 4, vjust = -0.5, hjust = 0, color = "black") +
+    ylim(y_min, y_max) +
+    theme_bw()
+  return(fig)
+}
+
+plot_box = function(group_lab, group_var, key_var, title, y.position, step.increase) {
+  df_fig = df_v1 %>%
+    transmute(group = get(group_var), value = get(key_var), abx_use)
+  df_fig$group = factor(df_fig$group, ordered = FALSE)
+  lm_fit = lm(value ~ group + abx_use, data = df_fig)
+  df_p = data.frame(group1 = group_lab[1],
+                    group2 = group_lab[-1],
+                    p = summary(lm_fit)$coef[grepl("group", names(coef(lm_fit))), "Pr(>|t|)"]) %>%
+    mutate(p = round(p, 2))
+  
+  bxp = ggboxplot(df_fig, x = "group", y = "value", color = "group",
+                  add = "jitter", 
+                  xlab = FALSE, ylab = FALSE, title = title) +
+    stat_pvalue_manual(df_p, y.position = y.position, 
+                       step.increase = step.increase, label = "p") +
+    scale_color_npg(name = "Group") +
+    theme(axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          strip.background = element_rect(fill = "white"),
+          legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+  return(bxp)
+}
+
+lm_eqn = function(m){
+  
+  a = unname(coef(m))[1]
+  b = unname(coef(m))[2]
+  c = unname(coef(m))[3]
+  p_val = summary(m)$coef[2, "Pr(>|t|)"]
+  
+  b = ifelse(sign(b) >= 0, 
+             paste0(" + ", format(b, digits = 2)), 
+             paste0(" - ", format(-b, digits = 2)))
+  c = ifelse(sign(c) >= 0, 
+             paste0(" + ", format(c, digits = 2)), 
+             paste0(" - ", format(-c, digits = 2)))
+  
+  eq = substitute(paste(italic(y) == a, b, italic(x), c, italic(abx), ", ", italic(p) == p_val),
+                  list(a = format(a, digits = 2), b = b, c = c,
+                       p_val = format(p_val, digits = 2)))
+  
+  return(as.character(as.expression(eq)))              
+}
+```
+
+# Data description
+
+```{r}
+df_v1 = read_csv("../data/df_v1.csv")
+df_v1 = df_v1 %>%
+  filter(group1 != "missing")
+
+df_v1$group1 = recode(df_v1$group1,
+                      `g1` = "G1", `g2` = "G2",
+                      `g3` = "G3", `g4` = "G4")
+df_v1$group2 = recode(df_v1$group2,
+                      `g1` = "G1", `g2` = "G2",
+                      `g3` = "G3", `g4` = "G4", `g5` = "G5")
+
+df_v1$group1 = factor(df_v1$group1, levels = c("G1", "G2", "G3", "G4"), ordered = TRUE)
+df_v1$group2 = factor(df_v1$group2, levels = c("G1", "G2", "G3", "G4", "G5"), ordered = TRUE)
+
+df_v1 %>% 
+  dplyr::select(il6, cd163, ip10, crp, lbp, cd14) %>% 
+  pastecs::stat.desc() %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+# Cytokine ~ groups: box plots
+
+## Primary group
+
+```{r, fig.width=10, fig.height=8}
+bxp_list = list()
+var_list = c("crp", "il6", "ip10", "lbp", "cd14", "cd163")
+title_list = c("CRP", "IL-6", "IP-10", "LBP", "sCD14", "sCD163")
+y_pos_list = c(5000, 4, 300, 20000, 3000, 1200)
+step_list = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+
+for (i in seq_along(var_list)) {
+  bxp = plot_box(group_lab = c("G1", "G2", "G3", "G4"),
+                 group_var = "group1",
+                 key_var = var_list[i], title = title_list[i],
+                 y.position = y_pos_list[i], step.increase = step_list[i])
+  bxp_list[[i]] = bxp
+}
+
+ggarrange(bxp_list[[1]], bxp_list[[2]], 
+          bxp_list[[3]], bxp_list[[4]],
+          bxp_list[[5]], bxp_list[[6]],
+          common.legend = TRUE)
+```
+
+## Secondary group
+
+```{r, fig.width=10, fig.height=8}
+bxp_list = list()
+var_list = c("crp", "il6", "ip10", "lbp", "cd14", "cd163")
+title_list = c("CRP", "IL-6", "IP-10", "LBP", "sCD14", "sCD163")
+y_pos_list = c(5000, 4, 300, 20000, 3000, 1200)
+step_list = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+
+for (i in seq_along(var_list)) {
+  bxp = plot_box(group_lab = c("G1", "G2", "G3", "G4", "G5"),
+                 group_var = "group2",
+                 key_var = var_list[i], title = title_list[i],
+                 y.position = y_pos_list[i], step.increase = step_list[i])
+  bxp_list[[i]] = bxp
+}
+
+ggarrange(bxp_list[[1]], bxp_list[[2]], 
+          bxp_list[[3]], bxp_list[[4]],
+          bxp_list[[5]], bxp_list[[6]],
+          common.legend = TRUE)
+```
+
+# Cytokine ~ groups: increasing trend
+
+```{r}
+cons = list(order = "simple", decreasing = FALSE, node = 1)
+```
+
+1. P-value is obtained by linear regression adjusting for antibiotics usage.
+
+2. P-values were not adjusted for multiple comparisons.
+
+## Primary grouping {.tabset}
+
+### CRP
+
+```{r}
+fit1 = clme(crp ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_crp_primary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = 4000, p_gap = 1000, ann_pos = 3600)
+fig_crp_primary = fig_crp_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "CRP")
+fig_crp_primary
+```
+
+### IL-6
+
+```{r}
+fit2 = clme(il6 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_il6_primary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = 3, p_gap = 0.6, ann_pos = 2.5)
+fig_il6_primary = fig_il6_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IL-6")
+fig_il6_primary
+```
+
+### IP-10
+
+```{r}
+fit3 = clme(ip10 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_ip10_primary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
+                             y_min = 0, y_max = 180, p_gap = 40, ann_pos = 160)
+fig_ip10_primary = fig_ip10_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IP-10")
+fig_ip10_primary
+```
+
+### LBP
+
+```{r}
+fit4 = clme(lbp ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_lbp_primary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = 19000, p_gap = 4000, ann_pos = 16000)
+fig_lbp_primary = fig_lbp_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "LBP")
+fig_lbp_primary
+```
+
+### sCD14
+
+```{r}
+fit5 = clme(cd14 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit5 = summary(fit5)
+
+fig_cd14_primary = plot_clme(summ_fit5, group = c("G1", "G2", "G3", "G4"),
+                             y_min = 0, y_max = 2500, p_gap = 300, ann_pos = 2200)
+fig_cd14_primary = fig_cd14_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD14")
+fig_cd14_primary
+```
+
+### sCD163
+
+```{r}
+fit6 = clme(cd163 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit6 = summary(fit6)
+
+fig_cd163_primary = plot_clme(summ_fit6, group = c("G1", "G2", "G3", "G4"),
+                              y_min = 0, y_max = 800, p_gap = 110, ann_pos = 700)
+fig_cd163_primary = fig_cd163_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD163")
+fig_cd163_primary
+```
+
+## Secondary grouping {.tabset}
+
+### CRP
+
+```{r}
+fit1 = clme(crp ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_crp_secondary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"),
+                              y_min = 0, y_max = 4200, p_gap = 1100, ann_pos = 3800)
+fig_crp_secondary = fig_crp_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "CRP")
+fig_crp_secondary
+```
+
+### IL-6
+
+```{r}
+fit2 = clme(il6 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_il6_secondary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"),
+                              y_min = 0, y_max = 3, p_gap = 0.7, ann_pos = 2.6)
+fig_il6_secondary = fig_il6_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IL-6")
+fig_il6_secondary
+```
+
+### IP-10
+
+```{r}
+fit3 = clme(ip10 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_ip10_secondary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
+                               y_min = 0, y_max = 200, p_gap = 30, ann_pos = 180)
+fig_ip10_secondary = fig_ip10_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IP-10")
+fig_ip10_secondary
+```
+
+### LBP
+
+```{r}
+fit4 = clme(lbp ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_lbp_secondary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
+                              y_min = 0, y_max = 19000, p_gap = 4000, ann_pos = 16000)
+fig_lbp_secondary = fig_lbp_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "LBP")
+fig_lbp_secondary
+```
+
+### sCD14
+
+```{r}
+fit5 = clme(cd14 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit5 = summary(fit5)
+
+fig_cd14_secondary = plot_clme(summ_fit5, group = c("G1", "G2", "G3", "G4", "G5"),
+                               y_min = 0, y_max = 2500, p_gap = 300, ann_pos = 2200)
+fig_cd14_secondary = fig_cd14_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD14")
+fig_cd14_secondary
+```
+
+### sCD163
+
+```{r}
+fit6 = clme(cd163 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit6 = summary(fit6)
+
+fig_cd163_secondary = plot_clme(summ_fit6, group = c("G1", "G2", "G3", "G4", "G5"),
+                                y_min = 0, y_max = 800, p_gap = 110, ann_pos = 700)
+fig_cd163_secondary = fig_cd163_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD163")
+fig_cd163_secondary
+```
+
+# Cytokine ~ groups: decreasing trend
+
+```{r}
+cons = list(order = "simple", decreasing = TRUE, node = 1)
+```
+
+1. P-value is obtained by linear regression adjusting for antibiotics usage.
+
+2. P-values were not adjusted for multiple comparisons.
+
+## Primary grouping {.tabset}
+
+### CRP
+
+```{r}
+fit1 = clme(crp ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_crp = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 4000, p_gap = 1000, ann_pos = 3600,
+                    trend = "decrease")
+fig_crp = fig_crp +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "CRP")
+fig_crp
+```
+
+### IL-6
+
+```{r}
+fit2 = clme(il6 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_il6 = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 3, p_gap = 0.3, ann_pos = 2.5,
+                    trend = "decrease")
+fig_il6 = fig_il6 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IL-6")
+fig_il6
+```
+
+### IP-10
+
+```{r}
+fit3 = clme(ip10 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_ip10 = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
+                     y_min = 0, y_max = 180, p_gap = 20, ann_pos = 160,
+                     trend = "decrease")
+fig_ip10 = fig_ip10 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IP-10")
+fig_ip10
+```
+
+### LBP
+
+```{r}
+fit4 = clme(lbp ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_lbp = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 19000, p_gap = 2000, ann_pos = 16000,
+                    trend = "decrease")
+fig_lbp = fig_lbp +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "LBP")
+fig_lbp
+```
+
+### sCD14
+
+```{r}
+fit5 = clme(cd14 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit5 = summary(fit5)
+
+fig_cd14 = plot_clme(summ_fit5, group = c("G1", "G2", "G3", "G4"),
+                     y_min = 0, y_max = 2500, p_gap = 150, ann_pos = 2200,
+                     trend = "decrease")
+fig_cd14 = fig_cd14 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD14")
+fig_cd14
+```
+
+### sCD163
+
+```{r}
+fit6 = clme(cd163 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit6 = summary(fit6)
+
+fig_cd163 = plot_clme(summ_fit6, group = c("G1", "G2", "G3", "G4"),
+                      y_min = 0, y_max = 800, p_gap = 60, ann_pos = 700,
+                      trend = "decrease")
+fig_cd163 = fig_cd163 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD163")
+fig_cd163
+```
+
+## Secondary grouping {.tabset}
+
+### CRP
+
+```{r}
+fit1 = clme(crp ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_crp = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"),
+                    y_min = 0, y_max = 4200, p_gap = 1000, ann_pos = 3500,
+                    trend = "decrease")
+fig_crp = fig_crp +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "CRP")
+fig_crp
+```
+
+### IL-6
+
+```{r}
+fit2 = clme(il6 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_il6 = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"),
+                    y_min = 0, y_max = 3, p_gap = 0.35, ann_pos = 2.6,
+                    trend = "decrease")
+fig_il6 = fig_il6 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IL-6")
+fig_il6
+```
+
+### IP-10
+
+```{r}
+fit3 = clme(ip10 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_ip10 = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
+                     y_min = 0, y_max = 200, p_gap = 40, ann_pos = 160,
+                     trend = "decrease")
+fig_ip10 = fig_ip10 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "IP-10")
+fig_ip10
+```
+
+### LBP
+
+```{r}
+fit4 = clme(lbp ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_lbp = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
+                    y_min = 0, y_max = 19000, p_gap = 4000, ann_pos = 16000,
+                    trend = "decrease")
+fig_lbp = fig_lbp +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "LBP")
+fig_lbp
+```
+
+### sCD14
+
+```{r}
+fit5 = clme(cd14 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit5 = summary(fit5)
+
+fig_cd14 = plot_clme(summ_fit5, group = c("G1", "G2", "G3", "G4", "G5"),
+                     y_min = 0, y_max = 2500, p_gap = 250, ann_pos = 2200,
+                     trend = "decrease")
+fig_cd14 = fig_cd14 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD14")
+fig_cd14
+```
+
+### sCD163
+
+```{r}
+fit6 = clme(cd163 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit6 = summary(fit6)
+
+fig_cd163 = plot_clme(summ_fit6, group = c("G1", "G2", "G3", "G4", "G5"),
+                      y_min = 0, y_max = 800, p_gap = 80, ann_pos = 700,
+                      trend = "decrease")
+fig_cd163 = fig_cd163 +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "sCD163")
+fig_cd163
+```
+
+# Outputs
+
+```{r}
+p_cytokine = ggarrange(fig_crp_primary, fig_cd14_primary, fig_cd163_primary, ncol = 3, 
+                       common.legend = TRUE, legend = "top", labels = c("a", "b", "c"))
+ggsave(filename = "../results/figures/main_cytokine.pdf", plot = p_cytokine,
+       width = 12, height = 5, units = "in")
+ggsave(filename = "../results/figures/main_cytokine.jpeg", plot = p_cytokine,
+       width = 12, height = 5, units = "in", dpi = 100)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```
+

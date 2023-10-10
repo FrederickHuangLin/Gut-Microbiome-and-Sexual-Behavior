@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<meta name="date" content="2023-10-10" />
+
+<title>Mediation Analyses</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Mediation Analyses</h1>
+<h4 class="date">October 10, 2023</h4>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rm(list = ls())</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">echo =</span> <span class="cn">TRUE</span>, <span class="at">warning =</span> <span class="cn">FALSE</span>, </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">message =</span> <span class="cn">FALSE</span>, <span class="at">comment =</span> <span class="cn">NA</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">fig.width =</span> <span class="fl">6.25</span>, <span class="at">fig.height =</span> <span class="dv">5</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(openxlsx)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse) </span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(microbiome)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mia)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(compositions)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medflex)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggsci)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate coefficients under constraints</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>constrain_est <span class="ot">=</span> <span class="cf">function</span>(beta_hat, vcov_hat, contrast, <span class="at">solver =</span> <span class="st">&quot;ECOS&quot;</span>) {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    beta_opt <span class="ot">=</span> CVXR<span class="sc">::</span><span class="fu">Variable</span>(<span class="at">rows =</span> <span class="fu">length</span>(beta_hat), <span class="at">cols =</span> <span class="dv">1</span>, <span class="at">name =</span> <span class="st">&quot;beta&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    obj <span class="ot">=</span> CVXR<span class="sc">::</span><span class="fu">Minimize</span>(CVXR<span class="sc">::</span><span class="fu">matrix_frac</span>(beta_opt <span class="sc">-</span> beta_hat, vcov_hat))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    cons <span class="ot">=</span> <span class="fu">suppressMessages</span>(contrast <span class="sc">%*%</span> beta_opt <span class="sc">&gt;=</span> <span class="dv">0</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    problem <span class="ot">=</span> CVXR<span class="sc">::</span><span class="fu">Problem</span>(<span class="at">objective =</span> obj, <span class="at">constraints =</span> <span class="fu">list</span>(cons))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suppressMessages</span>(result <span class="ot">&lt;-</span> <span class="fu">try</span>(CVXR<span class="sc">::</span><span class="fu">solve</span>(problem, <span class="at">solver =</span> solver),</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">silent =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">inherits</span>(result, <span class="st">&quot;try-error&quot;</span>)) {</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        beta_opt <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(beta_hat))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        beta_opt <span class="ot">=</span> <span class="fu">as.numeric</span>(result<span class="sc">$</span><span class="fu">getValue</span>(beta_opt))</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(beta_opt)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute the l_infty norm for a pattern</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>l_infty <span class="ot">=</span> <span class="cf">function</span>(beta_opt, node) {</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    l <span class="ot">=</span> <span class="fu">max</span>(<span class="fu">abs</span>(beta_opt[node]),</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">abs</span>(beta_opt[node] <span class="sc">-</span> beta_opt[<span class="fu">length</span>(beta_opt)]),</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(l)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend test</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>trend_test <span class="ot">=</span> <span class="cf">function</span>(beta_hat, vcov_hat, contrast, <span class="at">solver =</span> <span class="st">&quot;ECOS&quot;</span>,</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>                      node, <span class="at">B =</span> <span class="dv">1000</span>) {</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>  beta_opt <span class="ot">=</span> <span class="fu">constrain_est</span>(<span class="at">beta_hat =</span> beta_hat, </span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>                           <span class="at">vcov_hat =</span> vcov_hat, </span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>                           <span class="at">contrast =</span> contrast,</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>                           <span class="at">solver =</span> solver)</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>  l_opt <span class="ot">=</span> <span class="fu">l_infty</span>(<span class="at">beta =</span> beta_opt, <span class="at">node =</span> node)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>  beta_null <span class="ot">=</span> MASS<span class="sc">::</span><span class="fu">mvrnorm</span>(<span class="at">n =</span> B, </span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>                            <span class="at">mu =</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(beta_hat)), </span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>                            <span class="at">Sigma =</span> vcov_hat)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  l_null <span class="ot">=</span> <span class="fu">apply</span>(beta_null, <span class="dv">1</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    beta_trend <span class="ot">=</span> <span class="fu">constrain_est</span>(<span class="at">beta_hat =</span> x, </span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>                               <span class="at">vcov_hat =</span> vcov_hat, </span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>                               <span class="at">contrast =</span> contrast,</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>                               <span class="at">solver =</span> solver)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    l_trend <span class="ot">=</span> <span class="fu">l_infty</span>(<span class="at">beta =</span> beta_trend, <span class="at">node =</span> node)</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  p_trend <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>B <span class="sc">*</span> <span class="fu">sum</span>(l_null <span class="sc">&gt;</span> l_opt)</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> <span class="fu">list</span>(<span class="at">estimate =</span> beta_opt,</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>             <span class="at">test_statistic =</span> l_opt,</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>             <span class="at">p_value =</span> p_trend)</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(res)</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>contrast_mat <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, </span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>,</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>                        <span class="dv">0</span>, <span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>),</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>                      <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<div id="import-data" class="section level1">
+<h1>Import data</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Merged data</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df_v1 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../data/df_v1.csv&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df_v1 <span class="ot">=</span> df_v1 <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(group1 <span class="sc">!=</span> <span class="st">&quot;missing&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>         druguse <span class="sc">!=</span> <span class="st">&quot;missing&quot;</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Microbiome data</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>bias_corr_species <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../results/outputs/bias_corr_species.csv&quot;</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>bias_corr_genera <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../results/outputs/bias_corr_genus.csv&quot;</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>bias_corr_species <span class="ot">=</span> bias_corr_species <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">&quot;Species:&quot;</span>, species)<span class="sc">|</span><span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, species)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">species =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, species), </span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">paste</span>(<span class="fu">strsplit</span>(species, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>], <span class="st">&quot;spp.&quot;</span>),</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">strsplit</span>(species, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>])) <span class="sc">%&gt;%</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>bias_corr_genera <span class="ot">=</span> bias_corr_genera <span class="sc">%&gt;%</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">&quot;Genus:&quot;</span>, genus)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">genus =</span> <span class="fu">strsplit</span>(genus, <span class="st">&quot;:&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>]) <span class="sc">%&gt;%</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Significant taxa by group</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>sig_species1 <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_val <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>sig_genera1 <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_val <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Significant taxa by status</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>sig_species2 <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_statussc <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>sig_genera2 <span class="ot">=</span> <span class="fu">read.xlsx</span>(<span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">sheet =</span> <span class="dv">4</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_statussc <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>  .<span class="sc">$</span>taxon</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>sig_genera <span class="ot">=</span> <span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">intersect</span>(sig_genera1, sig_genera2))</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>sig_species <span class="ot">=</span> <span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">intersect</span>(sig_species1, sig_species2))</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset significant taxa</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span>  bias_corr_species <span class="sc">%&gt;%</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species <span class="sc">%in%</span> sig_species)</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span> <span class="fu">t</span>(df_da_species)</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(df_da_species) <span class="ot">=</span> df_da_species[<span class="dv">1</span>, ]</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>df_da_species <span class="ot">=</span> <span class="fu">data.frame</span>(df_da_species[<span class="sc">-</span><span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;sampleid&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span><span class="dv">1</span>, as.numeric))</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span>  bias_corr_genera <span class="sc">%&gt;%</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(genus <span class="sc">%in%</span> sig_genera)</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span> <span class="fu">t</span>(df_da_genera)</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(df_da_genera) <span class="ot">=</span> df_da_genera[<span class="dv">1</span>, ]</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>df_da_genera <span class="ot">=</span> <span class="fu">data.frame</span>(df_da_genera[<span class="sc">-</span><span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;sampleid&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span><span class="dv">1</span>, as.numeric))</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="co"># Exposure, outcome, confounders, and potential mediators</span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="co"># cytokines overlap: sCD14 and sCD163</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="co"># SCFA overlap: none</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>df_causal <span class="ot">=</span> df_v1 <span class="sc">%&gt;%</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(sampleid, group1, status, druguse, cd14, cd163) <span class="sc">%&gt;%</span></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(df_da_species, <span class="at">by =</span> <span class="st">&quot;sampleid&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(df_da_genera, <span class="at">by =</span> <span class="st">&quot;sampleid&quot;</span>)</span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>df_causal<span class="sc">$</span>status <span class="ot">=</span> <span class="fu">factor</span>(df_causal<span class="sc">$</span>status)</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>df_causal<span class="sc">$</span>group1 <span class="ot">=</span> <span class="fu">factor</span>(df_causal<span class="sc">$</span>group1)</span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>df_causal<span class="sc">$</span>druguse <span class="ot">=</span> <span class="fu">factor</span>(df_causal<span class="sc">$</span>druguse)</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a>df_causal <span class="ot">=</span> <span class="fu">data.frame</span>(df_causal)</span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a><span class="co"># ne_trend_test = list()</span></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>ne_trend_test <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">&quot;../results/outputs/ne_trend_test.rds&quot;</span>)</span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>wb <span class="ot">=</span> <span class="fu">createWorkbook</span>()</span></code></pre></div>
+</div>
+<div id="cytokine-mediators" class="section level1 tabset">
+<h1 class="tabset">Cytokine mediators</h1>
+<div id="all-cytokines" class="section level2">
+<h2>All cytokines</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Natural effects model</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, cd14, cd163, druguse) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(status <span class="sc">~</span> group1 <span class="sc">+</span> cd14 <span class="sc">+</span> cd163 <span class="sc">+</span> druguse,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">nMed =</span> <span class="dv">2</span>, <span class="at">data =</span> df)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>coefficients)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend test</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nde = trend_test(beta_hat = summ$coefficients[2:4, &quot;Estimate&quot;],</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[2:4, 2:4],</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nie = trend_test(beta_hat = summ$coefficients[5:7, &quot;Estimate&quot;],</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[5:7, 5:7],</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co"># ne_trend_test = base::append(ne_trend_test,</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co">#                              list(cyto_nde = trend_nde, cyto_nie = trend_nie))</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Outputs</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>types <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;nde&quot;</span>, <span class="st">&quot;nie&quot;</span>)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="fu">rep</span>(types, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>                 <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(types)), </span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>                 <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>,</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>                 <span class="at">trend_p =</span> <span class="cn">NA</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>estimate <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Estimate[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>se <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Std..Error[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>p <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Pr...z..[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">3</span>)</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">3</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>cyto_nde<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">6</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>cyto_nie<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cytokines&quot;</span>)</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cytokines&quot;</span>, res)</span></code></pre></div>
+</div>
+<div id="individual-cytokines" class="section level2">
+<h2>Individual cytokines</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>features <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;cd14&quot;</span>, <span class="st">&quot;cd163&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>res_nde <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nde&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>res_nie <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nie&quot;</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(features)) {</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(features[i])) <span class="sc">%&gt;%</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>()</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, features[i], <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula, <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">data =</span> df)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                   <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">=</span> <span class="fu">seq_along</span>(groups) <span class="sc">+</span> (i <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="fu">length</span>(groups)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">rbind</span>(res_nde, res_nie)</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cytokines_individual&quot;</span>)</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cytokines_individual&quot;</span>, res)</span></code></pre></div>
+</div>
+</div>
+<div id="microbial-species" class="section level1 tabset">
+<h1 class="tabset">Microbial species</h1>
+<div id="all-species" class="section level2">
+<h2>All species</h2>
+<p>The combination of A.muciniphila, B.caccae, B.fragilis, B.uniformis,
+Bacteroides spp., Butyricimonas spp., Dehalobacterium spp.,
+Methanobrevibacter spp., Odoribacter spp.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Natural effects model</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>all_species <span class="ot">=</span> <span class="fu">colnames</span>(df_causal)[<span class="dv">7</span><span class="sc">:</span><span class="dv">15</span>]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(all_species))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>df[<span class="fu">is.na</span>(df)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, </span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(all_species, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>), </span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">nMed =</span> <span class="fu">length</span>(all_species), <span class="at">data =</span> df)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>coefficients)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend test</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nde = trend_test(beta_hat = summ$coefficients[2:4, &quot;Estimate&quot;],</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[2:4, 2:4],</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nie = trend_test(beta_hat = summ$coefficients[5:7, &quot;Estimate&quot;],</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[5:7, 5:7],</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co"># ne_trend_test = base::append(ne_trend_test,</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="co">#                              list(species_nde = trend_nde, species_nie = trend_nie))</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Outputs</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>type <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;nde&quot;</span>, <span class="st">&quot;nie&quot;</span>)</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="fu">rep</span>(types, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>                 <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(type)), </span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>                 <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>,</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>                 <span class="at">trend_p =</span> <span class="cn">NA</span>)</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>estimate <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Estimate[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>se <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Std..Error[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>p <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Pr...z..[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">3</span>)</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">3</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>species_nde<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">6</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>species_nie<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;species&quot;</span>)</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;species&quot;</span>, res)</span></code></pre></div>
+</div>
+<div id="individual-species" class="section level2">
+<h2>Individual species</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>features <span class="ot">=</span> <span class="fu">sort</span>(all_species)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>res_nde <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nde&quot;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>res_nie <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nie&quot;</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(features)) {</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(features[i])) <span class="sc">%&gt;%</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>()</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, features[i], <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula, <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">data =</span> df)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                   <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">=</span> <span class="fu">seq_along</span>(groups) <span class="sc">+</span> (i <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="fu">length</span>(groups)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">rbind</span>(res_nde, res_nie)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;species_individual&quot;</span>)</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;species_individual&quot;</span>, res)</span></code></pre></div>
+</div>
+</div>
+<div id="microbial-genera" class="section level1 tabset">
+<h1 class="tabset">Microbial genera</h1>
+<div id="all-genera" class="section level2">
+<h2>All genera</h2>
+<p>The combination of Akkermansia, Alistipes, Bacteroides,
+Butyricimonas, Dehalobacterium, Methanobrevibacter, Odoribacter</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Natural effects model</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>all_genera <span class="ot">=</span> <span class="fu">colnames</span>(df_da_genera)[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(all_genera))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>df[<span class="fu">is.na</span>(df)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(all_genera, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>), </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula,</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">nMed =</span> <span class="fu">length</span>(all_genera), <span class="at">data =</span> df)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>coefficients)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend test</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nde = trend_test(beta_hat = summ$coefficients[2:4, &quot;Estimate&quot;],</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[2:4, 2:4],</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nie = trend_test(beta_hat = summ$coefficients[5:7, &quot;Estimate&quot;],</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[5:7, 5:7],</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co"># ne_trend_test = base::append(ne_trend_test,</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co">#                              list(genera_nde = trend_nde, genera_nie = trend_nie))</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Outputs</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>types <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;nde&quot;</span>, <span class="st">&quot;nie&quot;</span>)</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="fu">rep</span>(types, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>                 <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(types)), </span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>                 <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>,</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>                 <span class="at">trend_p =</span> <span class="cn">NA</span>)</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>estimate <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Estimate[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>se <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Std..Error[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>p <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Pr...z..[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">3</span>)</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">3</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>genera_nde<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">6</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>genera_nie<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;genera&quot;</span>)</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;genera&quot;</span>, res)</span></code></pre></div>
+</div>
+<div id="individual-genera" class="section level2">
+<h2>Individual genera</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>features <span class="ot">=</span> <span class="fu">sort</span>(all_genera)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>res_nde <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nde&quot;</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>res_nie <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="st">&quot;nie&quot;</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">feature =</span> <span class="fu">rep</span>(features, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                     <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(features)), </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(features)) {</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(features[i])) <span class="sc">%&gt;%</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>()</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, features[i], <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula, <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">data =</span> df)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>                   <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">=</span> <span class="fu">seq_along</span>(groups) <span class="sc">+</span> (i <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="fu">length</span>(groups)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  res_nde[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;estimate&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Estimate&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;se&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Std. Error&quot;</span>], <span class="dv">2</span>)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  res_nie[idx, <span class="st">&quot;p&quot;</span>] <span class="ot">=</span> <span class="fu">round</span>(summ<span class="sc">$</span>coefficients[<span class="dv">5</span><span class="sc">:</span><span class="dv">7</span>, <span class="st">&quot;Pr(&gt;|z|)&quot;</span>], <span class="dv">3</span>)</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">rbind</span>(res_nde, res_nie)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;genera_individual&quot;</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;genera_individual&quot;</span>, res)</span></code></pre></div>
+</div>
+</div>
+<div id="combine-cytokines-and-da-species" class="section level1">
+<h1>Combine cytokines and DA species</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Natural effects model</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>all_mediators <span class="ot">=</span> <span class="fu">c</span>(all_species, <span class="st">&quot;cd14&quot;</span>, <span class="st">&quot;cd163&quot;</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df_causal <span class="sc">%&gt;%</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(status, group1, druguse, <span class="fu">all_of</span>(all_mediators))</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>df[<span class="fu">is.na</span>(df)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>t_formula <span class="ot">=</span> <span class="fu">as.formula</span>(<span class="fu">paste0</span>(<span class="st">&quot;status ~ group1 + &quot;</span>, </span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">paste0</span>(all_mediators, <span class="at">collapse =</span> <span class="st">&quot; + &quot;</span>), </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&quot; + druguse&quot;</span>))</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>df_exp <span class="ot">=</span> <span class="fu">neImpute</span>(t_formula,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">nMed =</span> <span class="fu">length</span>(all_mediators), <span class="at">data =</span> df)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>ne_mod <span class="ot">=</span> <span class="fu">neModel</span>(status <span class="sc">~</span> group10 <span class="sc">+</span> group11 <span class="sc">+</span> druguse,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="fu">binomial</span>(<span class="st">&quot;logit&quot;</span>), <span class="at">expData =</span> df_exp, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>summ <span class="ot">=</span> <span class="fu">summary</span>(ne_mod)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>df_summ <span class="ot">=</span> <span class="fu">data.frame</span>(summ<span class="sc">$</span>coefficients)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend test</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nde = trend_test(beta_hat = summ$coefficients[2:4, &quot;Estimate&quot;],</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[2:4, 2:4],</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co"># trend_nie = trend_test(beta_hat = summ$coefficients[5:7, &quot;Estimate&quot;],</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co">#                        vcov_hat = ne_mod$vcov[5:7, 5:7],</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co">#                        contrast = contrast_mat,</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co">#                        node = 3, B = 1000)</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co"># ne_trend_test = base::append(ne_trend_test,</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="co">#                              list(all_nde = trend_nde, all_nie = trend_nie))</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Outputs</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>types <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;nde&quot;</span>, <span class="st">&quot;nie&quot;</span>)</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>groups <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;g2&quot;</span>, <span class="st">&quot;g3&quot;</span>, <span class="st">&quot;g4&quot;</span>)</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">type =</span> <span class="fu">rep</span>(types, <span class="at">each =</span> <span class="fu">length</span>(groups)), </span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>                 <span class="at">group =</span> <span class="fu">rep</span>(groups, <span class="fu">length</span>(types)), </span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>                 <span class="at">estimate =</span> <span class="cn">NA</span>, <span class="at">se =</span> <span class="cn">NA</span>, <span class="at">p =</span> <span class="cn">NA</span>,</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>                 <span class="at">trend_p =</span> <span class="cn">NA</span>)</span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>estimate <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Estimate[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>se <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Std..Error[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">2</span>)</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>p <span class="ot">=</span> <span class="fu">round</span>(df_summ<span class="sc">$</span>Pr...z..[<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>], <span class="dv">3</span>)</span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">3</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>all_nde<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>trend_p[<span class="dv">6</span>] <span class="ot">=</span> <span class="fu">round</span>(ne_trend_test<span class="sc">$</span>all_nie<span class="sc">$</span>p_value, <span class="dv">3</span>)</span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="fu">addWorksheet</span>(wb, <span class="st">&quot;cytokines_and_species&quot;</span>)</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="fu">writeData</span>(wb, <span class="st">&quot;cytokines_and_species&quot;</span>, res)</span></code></pre></div>
+</div>
+<div id="outputs" class="section level1">
+<h1>Outputs</h1>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveWorkbook</span>(wb, <span class="at">file =</span> <span class="st">&quot;../results/outputs/res_mediate.xlsx&quot;</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># saveRDS(ne_trend_test, file = &quot;../results/outputs/ne_trend_test.rds&quot;)</span></span></code></pre></div>
+</div>
+<div id="session-information" class="section level1">
+<h1>Session information</h1>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div>
+<pre><code>R version 4.2.2 (2022-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Monterey 12.6.8
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] ggpubr_0.5.0                   ggsci_2.9                     
+ [3] medflex_0.6-8                  multcomp_1.4-20               
+ [5] TH.data_1.1-1                  MASS_7.3-58.1                 
+ [7] survival_3.4-0                 mvtnorm_1.2-2                 
+ [9] compositions_2.0-4             mia_1.6.0                     
+[11] MultiAssayExperiment_1.24.0    TreeSummarizedExperiment_2.6.0
+[13] Biostrings_2.66.0              XVector_0.38.0                
+[15] SingleCellExperiment_1.20.0    SummarizedExperiment_1.28.0   
+[17] Biobase_2.58.0                 GenomicRanges_1.50.2          
+[19] GenomeInfoDb_1.34.5            IRanges_2.32.0                
+[21] S4Vectors_0.36.1               BiocGenerics_0.44.0           
+[23] MatrixGenerics_1.10.0          matrixStats_0.63.0            
+[25] microbiome_1.20.0              phyloseq_1.42.0               
+[27] forcats_0.5.2                  stringr_1.5.0                 
+[29] dplyr_1.0.10                   purrr_1.0.0                   
+[31] tidyr_1.2.1                    tibble_3.1.8                  
+[33] ggplot2_3.4.0                  tidyverse_1.3.2               
+[35] openxlsx_4.2.5.1               readr_2.1.3                   
+
+loaded via a namespace (and not attached):
+  [1] readxl_1.4.1                backports_1.4.1            
+  [3] plyr_1.8.8                  igraph_1.3.5               
+  [5] lazyeval_0.2.2              splines_4.2.2              
+  [7] BiocParallel_1.32.5         scater_1.26.1              
+  [9] digest_0.6.31               foreach_1.5.2              
+ [11] yulab.utils_0.0.6           htmltools_0.5.4            
+ [13] viridis_0.6.2               fansi_1.0.3                
+ [15] memoise_2.0.1               magrittr_2.0.3             
+ [17] ScaledMatrix_1.6.0          googlesheets4_1.0.1        
+ [19] cluster_2.1.4               DECIPHER_2.26.0            
+ [21] tzdb_0.3.0                  modelr_0.1.10              
+ [23] bayesm_3.1-5                vroom_1.6.0                
+ [25] sandwich_3.0-2              timechange_0.1.1           
+ [27] colorspace_2.0-3            blob_1.2.3                 
+ [29] rvest_1.0.3                 ggrepel_0.9.2              
+ [31] haven_2.5.1                 xfun_0.36                  
+ [33] crayon_1.5.2                RCurl_1.98-1.9             
+ [35] jsonlite_1.8.4              zoo_1.8-11                 
+ [37] iterators_1.0.14            ape_5.6-2                  
+ [39] glue_1.6.2                  gtable_0.3.1               
+ [41] gargle_1.2.1                zlibbioc_1.44.0            
+ [43] DelayedArray_0.24.0         car_3.1-1                  
+ [45] BiocSingular_1.14.0         Rhdf5lib_1.20.0            
+ [47] DEoptimR_1.0-11             abind_1.4-5                
+ [49] scales_1.2.1                DBI_1.1.3                  
+ [51] rstatix_0.7.1               Rcpp_1.0.10                
+ [53] viridisLite_0.4.1           decontam_1.18.0            
+ [55] tidytree_0.4.2              bit_4.0.5                  
+ [57] rsvd_1.0.5                  httr_1.4.4                 
+ [59] ellipsis_0.3.2              pkgconfig_2.0.3            
+ [61] scuttle_1.8.3               sass_0.4.4                 
+ [63] dbplyr_2.2.1                utf8_1.2.2                 
+ [65] tidyselect_1.2.0            rlang_1.0.6                
+ [67] reshape2_1.4.4              munsell_0.5.0              
+ [69] cellranger_1.1.0            tools_4.2.2                
+ [71] cachem_1.0.6                cli_3.5.0                  
+ [73] DirichletMultinomial_1.40.0 RSQLite_2.2.20             
+ [75] generics_0.1.3              ade4_1.7-20                
+ [77] broom_1.0.2                 evaluate_0.19              
+ [79] biomformat_1.26.0           fastmap_1.1.0              
+ [81] yaml_2.3.6                  bit64_4.0.5                
+ [83] knitr_1.41                  fs_1.5.2                   
+ [85] robustbase_0.95-0           zip_2.2.2                  
+ [87] nlme_3.1-160                sparseMatrixStats_1.10.0   
+ [89] xml2_1.3.3                  compiler_4.2.2             
+ [91] rstudioapi_0.14             beeswarm_0.4.0             
+ [93] ggsignif_0.6.4              reprex_2.0.2               
+ [95] treeio_1.22.0               bslib_0.4.2                
+ [97] stringi_1.7.8               lattice_0.20-45            
+ [99] Matrix_1.5-1                tensorA_0.36.2             
+[101] vegan_2.6-4                 permute_0.9-7              
+[103] multtest_2.54.0             vctrs_0.5.1                
+[105] pillar_1.8.1                lifecycle_1.0.3            
+[107] rhdf5filters_1.10.0         jquerylib_0.1.4            
+[109] BiocNeighbors_1.16.0        data.table_1.14.6          
+[111] bitops_1.0-7                irlba_2.3.5.1              
+[113] R6_2.5.1                    gridExtra_2.3              
+[115] vipor_0.4.5                 codetools_0.2-18           
+[117] assertthat_0.2.1            rhdf5_2.42.0               
+[119] withr_2.5.0                 GenomeInfoDbData_1.2.9     
+[121] mgcv_1.8-41                 parallel_4.2.2             
+[123] hms_1.1.2                   grid_4.2.2                 
+[125] beachmat_2.14.0             rmarkdown_2.19             
+[127] DelayedMatrixStats_1.20.0   carData_3.0-5              
+[129] googledrive_2.0.0           Rtsne_0.16                 
+[131] lubridate_1.9.0             ggbeeswarm_0.7.1           </code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

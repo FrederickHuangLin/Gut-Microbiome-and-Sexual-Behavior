@@ -1,0 +1,506 @@
+---
+title: "Analyses of SCFA"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
+                      message = FALSE, comment = NA,
+                      fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(tidyverse) 
+library(CLME)
+library(magrittr)
+library(qwraps2)
+library(ggprism)
+library(ggsci)
+library(ggpubr)
+library(rstatix)
+library(jtools)
+library(kableExtra)
+options(digits = 3)
+```
+
+```{r helper}
+plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
+  overall_p = clme_obj$p.value
+  ind_p = clme_obj$p.value.ind
+  est_mean = clme_obj$theta[group]
+  est_se = sqrt(diag(clme_obj$cov.theta))[group]
+  
+  df_fig = data.frame(x = group, y = est_mean, err = est_se)
+  
+  if (est_mean[2] < est_mean[length(est_mean)]) {
+    start_p_pos = est_mean[2] + p_gap
+    end_p_pos = max(est_mean) + p_gap
+  } else if (est_mean[2] > est_mean[length(est_mean)]) {
+    start_p_pos = max(est_mean) + p_gap
+    end_p_pos = min(est_mean) + p_gap
+  } else {
+    if (trend == "increase") {
+      start_p_pos = est_mean[2] + p_gap
+      end_p_pos = max(est_mean) + 2 * p_gap
+    } else {
+      start_p_pos = max(est_mean) + 2 * p_gap
+      end_p_pos = min(est_mean) + p_gap
+    }
+  }
+  
+  df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
+                    group2 = group[-1],
+                    x = group[-1],
+                    label = paste0("p = ", round(ind_p, 3)),
+                    y.position = seq.int(from = start_p_pos, 
+                                         to = end_p_pos, 
+                                         length.out = length(group) - 1))
+  df_ann = data.frame(x = group[1], y = ann_pos,
+                      fill = "white",
+                      label = paste0("Trend p-value = ", round(overall_p, 3)))
+  
+  fig = df_fig %>%
+    ggplot(aes(x = x, y = y)) +
+    geom_bar(stat = "identity", color = "black", aes(fill = x)) + 
+    geom_errorbar(aes(ymin = y - 1.96 * err, ymax = y + 1.96 * err), 
+                  width = .2, position = position_dodge(.9)) +
+    add_pvalue(df_p,
+               xmin = "group1",
+               xmax = "group2",
+               label = "label",
+               y.position = "y.position",
+               remove.bracket = FALSE, 
+               ...) +
+    geom_label(data = df_ann, aes(x = x, y = y, label = label), 
+               size = 4, vjust = -0.5, hjust = 0, color = "black") +
+    ylim(y_min, y_max) +
+    theme_bw()
+  return(fig)
+}
+
+plot_box = function(group_lab, group_var, key_var, title, y.position, step.increase) {
+  df_fig = df_v1 %>%
+    transmute(group = get(group_var), value = get(key_var), abx_use)
+  df_fig$group = factor(df_fig$group, ordered = FALSE)
+  lm_fit = lm(value ~ group + abx_use, data = df_fig)
+  df_p = data.frame(group1 = group_lab[1],
+                    group2 = group_lab[-1],
+                    p = summary(lm_fit)$coef[grepl("group", names(coef(lm_fit))), "Pr(>|t|)"]) %>%
+    mutate(p = round(p, 2))
+  
+  bxp = ggboxplot(df_fig, x = "group", y = "value", color = "group",
+                  add = "jitter", 
+                  xlab = FALSE, ylab = FALSE, title = title) +
+    stat_pvalue_manual(df_p, y.position = y.position, 
+                       step.increase = step.increase, label = "p") +
+    scale_color_npg(name = "Group") +
+    theme(axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          strip.background = element_rect(fill = "white"),
+          legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+  return(bxp)
+}
+
+lm_eqn = function(m){
+  
+  a = unname(coef(m))[1]
+  b = unname(coef(m))[2]
+  c = unname(coef(m))[3]
+  p_val = summary(m)$coef[2, "Pr(>|t|)"]
+  
+  b = ifelse(sign(b) >= 0, 
+             paste0(" + ", format(b, digits = 2)), 
+             paste0(" - ", format(-b, digits = 2)))
+  c = ifelse(sign(c) >= 0, 
+             paste0(" + ", format(c, digits = 2)), 
+             paste0(" - ", format(-c, digits = 2)))
+  
+  eq = substitute(paste(italic(y) == a, b, italic(x), c, italic(abx), ", ", italic(p) == p_val),
+                  list(a = format(a, digits = 2), b = b, c = c,
+                       p_val = format(p_val, digits = 2)))
+  
+  return(as.character(as.expression(eq)))              
+}
+```
+
+# Data description {.tabset}
+
+## Import data
+
+```{r}
+df_merge = read_csv("../data/df_merge.csv")
+df_v1 = df_merge %>%
+  filter(visit == "v1",
+         group1 != "missing")
+df_v2 = df_merge %>%
+  filter(visit == "v2",
+         group1 != "missing")
+
+df_v1$group1 = recode(df_v1$group1,
+                      `g1` = "G1", `g2` = "G2",
+                      `g3` = "G3", `g4` = "G4")
+df_v1$group2 = recode(df_v1$group2,
+                      `g1` = "G1", `g2` = "G2",
+                      `g3` = "G3", `g4` = "G4", `g5` = "G5")
+
+df_v1 = df_v1 %>%
+  transmute(subjid, status, leu3p, leu2p, recept_anal, abx_use, group1, group2, 
+            acetate_v1 = acetate, propionate_v1 = propionate, 
+            butyrate_v1 = butyrate, valerate_v1 = valerate)
+df_v2 = df_v2 %>%
+  transmute(subjid, 
+            acetate_v2 = acetate, propionate_v2 = propionate, 
+            butyrate_v2 = butyrate, valerate_v2 = valerate) 
+
+df_v1 = df_v1 %>%
+  left_join(df_v2, by = "subjid")
+
+df_v1$group1 = factor(df_v1$group1, levels = c("G1", "G2", "G3", "G4"), ordered = TRUE)
+df_v1$group2 = factor(df_v1$group2, levels = c("G1", "G2", "G3", "G4", "G5"), ordered = TRUE)
+```
+
+## Visit 1
+
+```{r}
+df_v1 %>% 
+  dplyr::select(acetate_v1, propionate_v1, butyrate_v1, valerate_v1) %>%
+  pastecs::stat.desc() %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+## Visit 2
+
+```{r}
+df_v1 %>% 
+  dplyr::select(acetate_v2, propionate_v2, butyrate_v2, valerate_v2) %>%
+  pastecs::stat.desc() %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+# SCFA ~ groups: box plots
+
+## Primary group
+
+```{r, fig.width=8, fig.height=8}
+bxp_list = list()
+var_list = c("acetate_v1", "butyrate_v1", "propionate_v1", "valerate_v1")
+title_list = c("Acetate", "Butyrate", "Propionate", "Valerate")
+y_pos_list = c(6, 0.25, 0.35, 0.07)
+step_list = c(0.1, 0.1, 0.1, 0.1)
+
+for (i in seq_along(var_list)) {
+  bxp = plot_box(group_lab = c("G1", "G2", "G3", "G4"),
+                 group_var = "group1",
+                 key_var = var_list[i], title = title_list[i],
+                 y.position = y_pos_list[i], step.increase = step_list[i])
+  bxp_list[[i]] = bxp
+}
+
+ggarrange(bxp_list[[1]], bxp_list[[2]], bxp_list[[3]], bxp_list[[4]],
+          common.legend = TRUE)
+```
+
+## Secondary group
+
+```{r, fig.width=8, fig.height=8}
+bxp_list = list()
+var_list = c("acetate_v1", "butyrate_v1", "propionate_v1", "valerate_v1")
+title_list = c("Acetate", "Butyrate", "Propionate", "Valerate")
+y_pos_list = c(6, 0.25, 0.35, 0.07)
+step_list = c(0.1, 0.1, 0.1, 0.1)
+
+for (i in seq_along(var_list)) {
+  bxp = plot_box(group_lab = c("G1", "G2", "G3", "G4", "G5"),
+                 group_var = "group2",
+                 key_var = var_list[i], title = title_list[i],
+                 y.position = y_pos_list[i], step.increase = step_list[i])
+  bxp_list[[i]] = bxp
+}
+
+ggarrange(bxp_list[[1]], bxp_list[[2]], bxp_list[[3]], bxp_list[[4]],
+          common.legend = TRUE)
+```
+
+# SCFA ~ groups: increasing trend
+
+```{r}
+cons = list(order = "simple", decreasing = FALSE, node = 1)
+```
+
+1. P-value is obtained by linear regression adjusting for antibiotics usage.
+
+2. P-values were not adjusted for multiple comparisons.
+
+## Primary grouping {.tabset}
+
+### Acetate
+
+```{r}
+fit1 = clme(acetate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_ace_primary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"), 
+                            y_min = 0, y_max = 4, p_gap = 0.7, ann_pos = 3.5)
+fig_ace_primary = fig_ace_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Acetate")
+fig_ace_primary
+```
+
+### Butyrate
+
+```{r}
+fit2 = clme(butyrate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_but_primary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"), 
+                            y_min = 0, y_max = 0.18, p_gap = 0.04, ann_pos = 0.16)
+fig_but_primary = fig_but_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Butyrate")
+fig_but_primary
+```
+
+### Propionate
+
+```{r}
+fit3 = clme(propionate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_pro_primary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = 0.25, p_gap = 0.05, ann_pos = 0.22)
+fig_pro_primary = fig_pro_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Propionate")
+fig_pro_primary
+```
+
+### Valerate
+
+```{r}
+fit4 = clme(valerate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_val_primary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 0.053, p_gap = 0.009, ann_pos = 0.048)
+fig_val_primary = fig_val_primary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Valerate")
+fig_val_primary
+```
+
+## Secondary grouping {.tabset}
+
+### Acetate
+
+```{r}
+fit1 = clme(acetate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_ace_secondary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"), 
+                              y_min = 0, y_max = 4, p_gap = 0.7, ann_pos = 3.5)
+fig_ace_secondary = fig_ace_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Acetate")
+fig_ace_secondary
+```
+
+### Butyrate
+
+```{r}
+fit2 = clme(butyrate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_but_secondary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"), 
+                              y_min = 0, y_max = 0.18, p_gap = 0.04, ann_pos = 0.16)
+fig_but_secondary = fig_but_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Butyrate")
+fig_but_secondary
+```
+
+### Propionate
+
+```{r}
+fit3 = clme(propionate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_pro_secondary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
+                              y_min = 0, y_max = 0.25, p_gap = 0.05, ann_pos = 0.22)
+fig_pro_secondary = fig_pro_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Propionate")
+fig_pro_secondary
+```
+
+### Valerate
+
+```{r}
+fit4 = clme(valerate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_val_secondary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
+                              y_min = 0, y_max = 0.053, p_gap = 0.009, ann_pos = 0.048)
+fig_val_secondary = fig_val_secondary +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Valerate")
+fig_val_secondary
+```
+
+# SCFA ~ groups: decreasing trend
+
+```{r}
+cons = list(order = "simple", decreasing = TRUE, node = 1)
+```
+
+1. P-value is obtained by linear regression adjusting for antibiotics usage.
+
+2. P-values were not adjusted for multiple comparisons.
+
+## Primary grouping {.tabset}
+
+### Acetate
+
+```{r}
+fit1 = clme(acetate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_ace = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"), 
+                    y_min = 0, y_max = 4, p_gap = 0.6, ann_pos = 3.5,
+                    trend = "decrease")
+fig_ace = fig_ace +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Acetate")
+fig_ace
+```
+
+### Butyrate
+
+```{r}
+fit2 = clme(butyrate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_but = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"), 
+                    y_min = 0, y_max = 0.18, p_gap = 0.02, ann_pos = 0.16,
+                    trend = "decrease")
+fig_but = fig_but +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Butyrate")
+fig_but
+```
+
+### Propionate
+
+```{r}
+fit3 = clme(propionate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_pro = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 0.25, p_gap = 0.03, ann_pos = 0.22,
+                    trend = "decrease")
+fig_pro = fig_pro +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Propionate")
+fig_pro
+```
+
+### Valerate
+
+```{r}
+fit4 = clme(valerate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_val = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = 0.053, p_gap = 0.005, ann_pos = 0.048,
+                    trend = "decrease")
+fig_val = fig_val +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Valerate")
+fig_val
+```
+
+## Secondary grouping {.tabset}
+
+### Acetate
+
+```{r}
+fit1 = clme(acetate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit1 = summary(fit1)
+
+fig_ace = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"), 
+                    y_min = 0, y_max = 4, p_gap = 0.5, ann_pos = 3.5,
+                    trend = "decrease")
+fig_ace = fig_ace +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Acetate")
+fig_ace
+```
+
+### Butyrate
+
+```{r}
+fit2 = clme(butyrate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit2 = summary(fit2)
+
+fig_but = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"), 
+                    y_min = 0, y_max = 0.18, p_gap = 0.02, ann_pos = 0.16,
+                    trend = "decrease")
+fig_but = fig_but +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Butyrate")
+fig_but
+```
+
+### Propionate
+
+```{r}
+fit3 = clme(propionate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit3 = summary(fit3)
+
+fig_pro = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
+                    y_min = 0, y_max = 0.25, p_gap = 0.03, ann_pos = 0.22,
+                    trend = "decrease")
+fig_pro = fig_pro +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Propionate")
+fig_pro
+```
+
+### Valerate
+
+```{r}
+fit4 = clme(valerate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
+summ_fit4 = summary(fit4)
+
+fig_val = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
+                    y_min = 0, y_max = 0.053, p_gap = 0.005, ann_pos = 0.048,
+                    trend = "decrease")
+fig_val = fig_val +
+  scale_fill_npg(name = NULL) +
+  labs(x = NULL, y = "Valerate")
+fig_val
+```
+
+# Outputs
+
+```{r}
+p_scfa = ggarrange(fig_ace_primary, fig_val_primary, ncol = 2, 
+                   common.legend = TRUE, legend = "top", labels = c("a", "b"))
+ggsave(filename = "../results/figures/main_scfa.pdf", plot = p_scfa,
+       width = 8, height = 5, units = "in")
+ggsave(filename = "../results/figures/main_scfa.jpeg", plot = p_scfa,
+       width = 8, height = 5, units = "in", dpi = 100)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```
+
+
+

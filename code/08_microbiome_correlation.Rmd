@@ -1,0 +1,486 @@
+---
+title: "Microbial Correlation Analyses"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, 
+                      comment=NA, fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(openxlsx)
+library(tidyverse) 
+library(igraph)
+library(ggraph)
+library(tidygraph)
+library(ggpubr)
+library(microbiome)
+library(ANCOMBC)
+library(DT)
+options(DT.options = list(
+  initComplete = JS("function(settings, json) {",
+  "$(this.api().table().header()).css({'background-color': 
+  '#000', 'color': '#fff'});","}")))
+```
+
+```{r helper}
+get_upper_tri = function(cormat){
+    cormat[lower.tri(cormat)] = NA
+    diag(cormat) = NA
+    return(cormat)
+}
+
+data_preprocess = function(res, type = "linear", level = "Species", tax) {
+  if (type == "linear") {
+    df_corr = res$corr_fl
+  } else {
+    df_corr = res$dcorr_fl
+  }
+  
+  if (level == "Species") {
+    tax_name = colnames(df_corr)
+    tax_name = sapply(tax_name, function(x) {
+      name = ifelse(grepl("Genus:", x), 
+             paste(strsplit(x, ":")[[1]][2], "spp."),
+             ifelse(grepl("Species:", x), 
+                    strsplit(x, ":")[[1]][2], x))
+      return(name)
+    })
+    colnames(df_corr) = tax_name
+    rownames(df_corr) = tax_name
+    
+    df_corr = df_corr[tax, tax]
+  } else {
+    tax_name = colnames(df_corr)
+    tax_name = sapply(tax_name, function(x) 
+      strsplit(x, ":")[[1]][2])
+    colnames(df_corr) = tax_name
+    rownames(df_corr) = tax_name
+    
+    df_corr = df_corr[tax, tax]
+  }
+  
+  tax_name = sort(colnames(df_corr))
+  df_corr = df_corr[tax_name, tax_name]
+  
+  df_clean = data.frame(get_upper_tri(df_corr)) %>%
+    rownames_to_column("var1") %>%
+    pivot_longer(cols = -var1, names_to = "var2", values_to = "value") 
+  
+  # Correct for names
+  df_name = data.frame(var1 = unique(df_clean$var1),
+                       var2 = unique(df_clean$var2))
+  
+  for (i in seq_len(nrow(df_name))) {
+    df_clean$var2[df_clean$var2 == df_name$var2[i]] = df_name$var1[i]
+  }
+  df_clean = df_clean %>%
+    filter(!is.na(value)) %>%
+    mutate(value = round(value, 2))
+}
+```
+
+```{r data}
+# OTU table
+otu_table = read_tsv("../data/otu-table.tsv")
+otu_id = otu_table$`#OTU ID`
+otu_table = data.frame(otu_table[, -1], check.names = FALSE, row.names = otu_id)
+
+# Taxonomy table
+tax = read_tsv("../data/taxonomy.tsv")
+otu_id = tax$`Feature ID`
+tax = data.frame(tax[, - c(1, 3)], row.names = otu_id)
+tax = tax %>% 
+  separate(col = Taxon, 
+           into = c("Kingdom", "Phylum", "Class", "Order", 
+                    "Family", "Genus", "Species"),
+           sep = ";") %>%
+  rowwise() %>%
+  dplyr::mutate_all(function(x) strsplit(x, "__")[[1]][2]) %>%
+  mutate(Species = ifelse(!is.na(Species) & !is.na(Genus),
+                          paste(ifelse(strsplit(Genus, "")[[1]][1] == "[",
+                                       strsplit(Genus, "")[[1]][2],
+                                       strsplit(Genus, "")[[1]][1]), Species, sep = "."),
+                          NA)) %>%
+  ungroup()
+tax = as.matrix(tax)
+rownames(tax) = otu_id
+tax[tax == ""] = NA
+
+# Meta data
+meta_data = read_csv("../data/df_v1.csv")
+meta_data$status = factor(meta_data$status, levels = c("nc", "sc"))
+meta_data$time2aids = factor(meta_data$time2aids,
+                             levels = c("never", "> 10 yrs",
+                                        "5 - 10 yrs", "< 5 yrs"))
+
+# Phyloseq object
+OTU = otu_table(otu_table, taxa_are_rows = TRUE)
+META = sample_data(meta_data)
+sample_names(META) = meta_data$sampleid
+TAX = tax_table(tax)
+otu_data = phyloseq(OTU, TAX, META)
+genus_data = aggregate_taxa(otu_data, "Genus")
+species_data = aggregate_taxa(otu_data, "Species")
+
+tse = mia::makeTreeSummarizedExperimentFromPhyloseq(otu_data)
+tse = tse[, tse$group1 != "missing"]
+tse1 = tse[, tse$group1 == "g1"]
+tse2 = tse[, tse$group1 == "g2"]
+tse3 = tse[, tse$group1 == "g3"]
+tse4 = tse[, tse$group1 == "g4"]
+```
+
+# Species level
+
+1. Number of stool samples `r phyloseq::nsamples(species_data)`,
+
+2. Number of taxa `r phyloseq::ntaxa(species_data)`.
+
+```{r}
+key_species = c("A.muciniphila", "B.caccae", "B.fragilis", "B.uniformis", 
+                "Bacteroides spp.", "Butyricimonas spp.", "Dehalobacterium spp.", 
+                "Methanobrevibacter spp.", "Odoribacter spp.")
+```
+
+## Linear correlations {.tabset}
+
+### Run SECOM
+
+```{r, warning=FALSE, message=FALSE}
+set.seed(123)
+tse1 = tse[, tse$group1 == "g1"]
+tse2 = tse[, tse$group1 == "g2"]
+tse3 = tse[, tse$group1 == "g3"]
+tse4 = tse[, tse$group1 == "g4"]
+res_linear1 = secom_linear(data = list(tse1), assay_name = "counts",
+                           tax_level = "Species", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear2 = secom_linear(data = list(tse2), assay_name = "counts",
+                           tax_level = "Species", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear3 = secom_linear(data = list(tse3), assay_name = "counts",
+                           tax_level = "Species", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear4 = secom_linear(data = list(tse4), assay_name = "counts",
+                           tax_level = "Species", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+
+species1 = rownames(res_linear1$corr_fl)
+species1 = species1[grepl("Species:", species1)|grepl("Genus:", species1)]
+species2 = rownames(res_linear2$corr_fl)
+species2 = species2[grepl("Species:", species2)|grepl("Genus:", species2)]
+species3 = rownames(res_linear3$corr_fl)
+species3 = species3[grepl("Species:", species3)|grepl("Genus:", species3)]
+species4 = rownames(res_linear4$corr_fl)
+species4 = species4[grepl("Species:", species4)|grepl("Genus:", species4)]
+common_species = Reduce(intersect, list(species1, species2, species3, species4))
+common_species = sapply(common_species, function(x) 
+  ifelse(grepl("Genus:", x), 
+                        paste(strsplit(x, ":")[[1]][2], "spp."),
+                        strsplit(x, ":")[[1]][2]))
+```
+
+### Visualization
+
+```{r}
+df_corr1 = data_preprocess(res_linear1, type = "linear", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G1")
+df_corr2 = data_preprocess(res_linear2, type = "linear", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G2")
+df_corr3 = data_preprocess(res_linear3, type = "linear", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G3")
+df_corr4 = data_preprocess(res_linear4, type = "linear", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G4")
+
+df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
+  unite("pair", var1:var2, sep = " vs. ")
+
+value_check = df_corr %>%
+  dplyr::group_by(pair) %>%
+  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
+
+non_empty_pair = value_check %>%
+  filter(empty_idx == FALSE) %>%
+  .$pair
+df_fig = df_corr %>%
+  dplyr::filter(pair %in% non_empty_pair)
+
+fig_species_linear = df_fig %>%
+  ggline(x = "group", y = "value",
+         color = "steelblue", facet.by = "pair",
+         xlab = "", ylab = "", title = "Pearson Correlation") +
+  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
+  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Nonlinear correlations {.tabset}
+
+### Run SECOM
+
+```{r, warning=FALSE, message=FALSE}
+set.seed(123)
+res_dist1 = secom_dist(data = list(tse1), assay_name = "counts",
+                       tax_level = "Species", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist2 = secom_dist(data = list(tse2), assay_name = "counts",
+                       tax_level = "Species", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist3 = secom_dist(data = list(tse3), assay_name = "counts",
+                       tax_level = "Species", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist4 = secom_dist(data = list(tse4), assay_name = "counts",
+                       tax_level = "Species", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+
+species1 = rownames(res_dist1$corr_fl)
+species1 = species1[grepl("Species:", species1)|grepl("Genus:", species1)]
+species2 = rownames(res_dist2$corr_fl)
+species2 = species2[grepl("Species:", species2)|grepl("Genus:", species2)]
+species3 = rownames(res_dist3$corr_fl)
+species3 = species3[grepl("Species:", species3)|grepl("Genus:", species3)]
+species4 = rownames(res_dist4$corr_fl)
+species4 = species4[grepl("Species:", species4)|grepl("Genus:", species4)]
+common_species = Reduce(intersect, list(species1, species2, species3, species4))
+common_species = sapply(common_species, function(x) 
+  ifelse(grepl("Genus:", x), 
+                        paste(strsplit(x, ":")[[1]][2], "spp."),
+                        strsplit(x, ":")[[1]][2]))
+```
+
+### Visualization
+
+```{r}
+df_corr1 = data_preprocess(res_dist1, type = "dist", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G1")
+df_corr2 = data_preprocess(res_dist2, type = "dist", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G2")
+df_corr3 = data_preprocess(res_dist3, type = "dist", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G3")
+df_corr4 = data_preprocess(res_dist4, type = "dist", level = "Species", tax = key_species) %>%
+  dplyr::mutate(group = "G4")
+
+df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
+  unite("pair", var1:var2, sep = " vs. ")
+
+value_check = df_corr %>%
+  dplyr::group_by(pair) %>%
+  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
+
+non_empty_pair = value_check %>%
+  filter(empty_idx == FALSE) %>%
+  .$pair
+df_fig = df_corr %>%
+  dplyr::filter(pair %in% non_empty_pair)
+
+fig_species_dist = df_fig %>%
+  ggline(x = "group", y = "value",
+         color = "steelblue", facet.by = "pair",
+         xlab = "", ylab = "", title = "Distance Correlation") +
+  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
+  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Genus level
+
+1. Number of stool samples `r nsamples(genus_data)`,
+
+2. Number of taxa `r ntaxa(genus_data)`.
+
+```{r}
+key_genera = c("Akkermansia", "Alistipes", "Bacteroides", "Butyricimonas", 
+               "Dehalobacterium", "Methanobrevibacter", "Odoribacter")
+```
+
+## Linear correlations {.tabset}
+
+### Run SECOM
+
+```{r, warning=FALSE, message=FALSE}
+set.seed(123)
+res_linear1 = secom_linear(data = list(tse1), assay_name = "counts",
+                           tax_level = "Genus", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear2 = secom_linear(data = list(tse2), assay_name = "counts",
+                           tax_level = "Genus", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear3 = secom_linear(data = list(tse3), assay_name = "counts",
+                           tax_level = "Genus", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_linear4 = secom_linear(data = list(tse4), assay_name = "counts",
+                           tax_level = "Genus", pseudo = 0, 
+                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                           wins_quant = c(0.05, 0.95), method = "pearson", 
+                           soft = FALSE, thresh_len = 20, n_cv = 10, 
+                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+
+genera1 = rownames(res_linear1$corr_fl)
+genera1 = genera1[grepl("Genus:", genera1)]
+genera2 = rownames(res_linear2$corr_fl)
+genera2 = genera2[grepl("Genus:", genera2)]
+genera3 = rownames(res_linear3$corr_fl)
+genera3 = genera3[grepl("Genus:", genera3)]
+genera4 = rownames(res_linear4$corr_fl)
+genera4 = genera4[grepl("Genus:", genera4)]
+common_genera = Reduce(intersect, list(genera1, genera2, genera3, genera4))
+common_genera = sapply(common_genera, function(x) strsplit(x, ":")[[1]][2])
+```
+
+### Visualization
+
+```{r}
+df_corr1 = data_preprocess(res_linear1, type = "linear", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G1")
+df_corr2 = data_preprocess(res_linear2, type = "linear", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G2")
+df_corr3 = data_preprocess(res_linear3, type = "linear", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G3")
+df_corr4 = data_preprocess(res_linear4, type = "linear", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G4")
+
+df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
+  unite("pair", var1:var2, sep = " vs. ")
+
+value_check = df_corr %>%
+  dplyr::group_by(pair) %>%
+  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
+
+non_empty_pair = value_check %>%
+  filter(empty_idx == FALSE) %>%
+  .$pair
+df_fig = df_corr %>%
+  dplyr::filter(pair %in% non_empty_pair)
+
+fig_genus_linear = df_fig %>%
+  ggline(x = "group", y = "value",
+         color = "steelblue", facet.by = "pair",
+         xlab = "", ylab = "", title = "Pearson Correlation") +
+  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
+  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+fig_genus_linear
+```
+
+## Nonlinear correlations {.tabset}
+
+### Run SECOM
+
+```{r, warning=FALSE, message=FALSE}
+set.seed(123)
+res_dist1 = secom_dist(data = list(tse1), assay_name = "counts",
+                       tax_level = "Genus", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist2 = secom_dist(data = list(tse2), assay_name = "counts",
+                       tax_level = "Genus", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist3 = secom_dist(data = list(tse3), assay_name = "counts",
+                       tax_level = "Genus", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+res_dist4 = secom_dist(data = list(tse4), assay_name = "counts",
+                       tax_level = "Genus", pseudo = 0, 
+                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
+                       wins_quant = c(0.05, 0.95),
+                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
+
+genera1 = rownames(res_dist1$dcorr_fl)
+genera1 = genera1[grepl("Genus:", genera1)]
+genera2 = rownames(res_dist2$dcorr_fl)
+genera2 = genera2[grepl("Genus:", genera2)]
+genera3 = rownames(res_dist3$dcorr_fl)
+genera3 = genera3[grepl("Genus:", genera3)]
+genera4 = rownames(res_dist4$dcorr_fl)
+genera4 = genera4[grepl("Genus:", genera4)]
+common_genera = Reduce(intersect, list(genera1, genera2, genera3, genera4))
+common_genera = sapply(common_genera, function(x) strsplit(x, ":")[[1]][2])
+```
+
+### Visualization
+
+```{r}
+df_corr1 = data_preprocess(res_dist1, type = "dist", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G1")
+df_corr2 = data_preprocess(res_dist2, type = "dist", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G2")
+df_corr3 = data_preprocess(res_dist3, type = "dist", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G3")
+df_corr4 = data_preprocess(res_dist4, type = "dist", level = "Genus", tax = key_genera) %>%
+  dplyr::mutate(group = "G4")
+
+df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
+  unite("pair", var1:var2, sep = " vs. ")
+
+value_check = df_corr %>%
+  dplyr::group_by(pair) %>%
+  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
+
+non_empty_pair = value_check %>%
+  filter(empty_idx == FALSE) %>%
+  .$pair
+df_fig = df_corr %>%
+  dplyr::filter(pair %in% non_empty_pair)
+
+fig_genus_dist = df_fig %>%
+  ggline(x = "group", y = "value",
+         color = "steelblue", facet.by = "pair",
+         xlab = "", ylab = "", title = "Distance Correlation") +
+  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
+  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
+  theme(plot.title = element_text(hjust = 0.5))
+fig_genus_dist
+```
+
+# Outputs
+
+```{r}
+ggsave(file = "../results/figures/supp_secom.pdf", 
+       plot = fig_species_linear, height = 6, width = 10, units = "in")
+ggsave(file = "../results/figures/supp_secom.jpeg", 
+       plot = fig_species_linear, height = 6, width = 10, units = "in", dpi = 100)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```

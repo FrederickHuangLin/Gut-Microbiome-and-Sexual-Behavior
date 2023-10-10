@@ -1,0 +1,269 @@
+---
+title: "Integrative Analyses"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: rmarkdown::html_vignette
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+# rm(list = ls())
+
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, 
+                      comment=NA, fig.width = 6.25, fig.height = 5)
+
+library(readr)
+library(openxlsx)
+library(compositions)
+library(tidyverse) 
+library(mia)
+library(ggpubr)
+library(CCA)
+library(DT)
+options(DT.options = list(
+  initComplete = JS("function(settings, json) {",
+  "$(this.api().table().header()).css({'background-color': 
+  '#000', 'color': '#fff'});","}")))
+```
+
+```{r helper}
+lm_eqn = function(m){
+  
+  a = unname(coef(m))[1]
+  b = unname(coef(m))[2]
+  p_val = summary(m)$coef[2, "Pr(>|t|)"]
+  
+  b = ifelse(sign(b) >= 0, 
+             paste0(" + ", format(b, digits = 2)), 
+             paste0(" - ", format(-b, digits = 2)))
+  
+  eq = substitute(paste(italic(y) == a, b, italic(x), ", ", italic(p) == p_val),
+                  list(a = format(a, digits = 2), b = b,
+                       p_val = format(p_val, digits = 2)))
+  
+  return(as.character(as.expression(eq)))              
+}
+
+plot_scatter = function(var_name, tax_name, y_lab) {
+  df_fig = df %>%
+    dplyr::select(all_of(c(var_name, tax_name))) %>%
+    dplyr::rename(y = var_name) %>%
+    pivot_longer(-y, names_to = "tax", values_to = "x")
+  
+  df_lm = df_fig %>% 
+    group_by(tax) %>%
+    do(fit = lm(formula = y ~ x, data = .)) %>%
+    summarise(eq = lm_eqn(m = fit))
+  
+  df_ann = df_fig %>% 
+    group_by(tax) %>%
+    summarise(y = ifelse(mean(y, na.rm = TRUE) > 0, 
+                         0.5 * max(y, na.rm = TRUE),
+                         0.2 * abs(mean(y, na.rm = TRUE))),
+              x = median(x, na.rm = TRUE)) %>%
+      mutate(eq = df_lm$eq,
+             y_max = 1.05 * y)
+  
+  fig = df_fig %>% 
+    ggplot(aes(x = x, y = y)) + 
+    geom_point(alpha = 0.8, color = "#BEAED4") +
+    geom_smooth(method = "lm", se = TRUE, color = "skyblue", 
+                formula = y ~ x) +
+    facet_wrap(.~tax, scales = "free") +
+    labs(x = "Micorbial abundances", 
+         y = y_lab, 
+         title = NULL) + 
+    geom_blank(data = df_ann, aes(y = y_max)) +
+    geom_text(data = df_ann, aes(x = x, y = y, label = eq), size = 3, 
+              parse = TRUE, inherit.aes = FALSE) + 
+    theme_bw() +
+    theme(strip.background = element_rect(fill = "white"),
+          legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+  return(fig)
+}
+```
+
+```{r data}
+# Merged data
+df_v1 = read_csv("../data/df_v1.csv")
+df_v1 = df_v1 %>%
+  filter(group1 != "missing")
+
+# Microbiome data
+bias_corr_species = read_csv("../results/outputs/bias_corr_species.csv")
+bias_corr_genera = read_csv("../results/outputs/bias_corr_genus.csv")
+
+bias_corr_species = bias_corr_species %>%
+  rowwise() %>%
+  filter(grepl("Species:", species)|grepl("Genus:", species)) %>%
+  mutate(species = ifelse(grepl("Genus:", species), 
+                        paste(strsplit(species, ":")[[1]][2], "spp."),
+                        strsplit(species, ":")[[1]][2])) %>%
+  ungroup() 
+
+bias_corr_genera = bias_corr_genera %>%
+  rowwise() %>%
+  filter(grepl("Genus:", genus)) %>%
+  mutate(genus = strsplit(genus, ":")[[1]][2]) %>%
+  ungroup() 
+
+# Significant taxa from ANCOM-BC2
+sig_species = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 1) %>%
+  filter(p_val < 0.05) %>%
+  .$taxon
+sig_genera = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 2) %>%
+  filter(p_val < 0.05) %>%
+  .$taxon
+
+# Subset significant taxa
+df_da_species =  bias_corr_species %>%
+  filter(species %in% sig_species)
+df_da_species = t(df_da_species)
+colnames(df_da_species) = df_da_species[1, ]
+df_da_species = data.frame(df_da_species[-1, , drop = FALSE], check.names = FALSE) %>%
+  rownames_to_column("sampleid") %>%
+  mutate(across(-1, as.numeric))
+df_da_species[is.na(df_da_species)] = 0
+
+df_da_genera =  bias_corr_genera %>%
+  filter(genus %in% sig_genera)
+df_da_genera = t(df_da_genera)
+colnames(df_da_genera) = df_da_genera[1, ]
+df_da_genera = data.frame(df_da_genera[-1, , drop = FALSE], check.names = FALSE) %>%
+  rownames_to_column("sampleid") %>%
+  mutate(across(-1, as.numeric))
+df_da_genera[is.na(df_da_genera)] = 0
+
+df_add_species = df_v1 %>%
+  dplyr::left_join(df_da_species, by = "sampleid")
+df_add_genus = df_v1 %>%
+  dplyr::left_join(df_da_genera, by = "sampleid")
+
+df_add_species = data.frame(df_add_species)
+df_add_genus = data.frame(df_add_genus)
+
+sig_species = make.names(sig_species)
+sig_genera = make.names(sig_genera)
+
+wb = createWorkbook()
+```
+
+# Microbiome vs. cytokines {.tabset}
+
+## Cytokines vs. DA species
+
+```{r}
+t_formula = as.formula(paste0("cbind(crp, cd14, cd163) ~ ",
+                              paste0(sig_species, collapse = " + ")))
+fit = manova(t_formula, data = df_add_species)
+
+summ = summary(fit, test = "Pillai")
+summ
+df_summ = data.frame(summ$stats) %>%
+  rownames_to_column("Taxon") %>%
+  dplyr::transmute(Taxon,
+                   approx.F = signif(approx.F, 2),
+                   num.Df, den.Df, 
+                   P = round(`Pr..F.`, 2)) %>%
+  dplyr::filter(Taxon != "Residuals")
+
+addWorksheet(wb, "cyto_species")
+writeData(wb, "cyto_species", df_summ)
+```
+
+## Cytokines vs. DA genera
+
+```{r}
+t_formula = as.formula(paste0("cbind(crp, cd14, cd163) ~ ",
+                              paste0(sig_genera, collapse = " + ")))
+fit = manova(t_formula, data = df_add_genus)
+
+summ = summary(fit, test = "Pillai")
+summ
+df_summ = data.frame(summ$stats) %>%
+  rownames_to_column("Taxon") %>%
+  dplyr::transmute(Taxon,
+                   approx.F = signif(approx.F, 2),
+                   num.Df, den.Df, 
+                   P = round(`Pr..F.`, 2)) %>%
+  dplyr::filter(Taxon != "Residuals")
+
+addWorksheet(wb, "cyto_genera")
+writeData(wb, "cyto_genera", df_summ)
+```
+
+# Microbiome vs. SCFAs {.tabset}
+
+## SCFAs vs. DA species
+
+```{r}
+t_formula = as.formula(paste0("cbind(acetate, valerate) ~ ",
+                              paste0(sig_species, collapse = " + ")))
+fit = manova(t_formula, data = df_add_species)
+
+summ = summary(fit, test = "Pillai")
+summ
+df_summ = data.frame(summ$stats) %>%
+  rownames_to_column("Taxon") %>%
+  dplyr::transmute(Taxon,
+                   approx.F = signif(approx.F, 2),
+                   num.Df, den.Df, 
+                   P = round(`Pr..F.`, 2)) %>%
+  dplyr::filter(Taxon != "Residuals")
+
+addWorksheet(wb, "scfa_species")
+writeData(wb, "scfa_species", df_summ)
+```
+
+## SCFAs vs. DA genera
+
+```{r}
+t_formula = as.formula(paste0("cbind(acetate, valerate) ~ ",
+                              paste0(sig_genera, collapse = " + ")))
+fit = manova(t_formula, data = df_add_genus)
+
+summ = summary(fit, test = "Pillai")
+summ
+df_summ = data.frame(summ$stats) %>%
+  rownames_to_column("Taxon") %>%
+  dplyr::transmute(Taxon,
+                   approx.F = signif(approx.F, 2),
+                   num.Df, den.Df, 
+                   P = round(`Pr..F.`, 2)) %>%
+  dplyr::filter(Taxon != "Residuals")
+
+addWorksheet(wb, "scfa_genera")
+writeData(wb, "scfa_genera", df_summ)
+```
+
+# Cytokines vs. SCFAs
+
+```{r}
+fit = manova(cbind(crp, cd14, cd163) ~ 
+               acetate + valerate, 
+             data = df_v1)
+
+summ = summary(fit, test = "Pillai")
+summ
+df_summ = data.frame(summ$stats) %>%
+  rownames_to_column("Taxon") %>%
+  dplyr::transmute(Taxon,
+                   approx.F = signif(approx.F, 2),
+                   num.Df, den.Df, 
+                   P = round(`Pr..F.`, 2)) %>%
+  dplyr::filter(Taxon != "Residuals")
+
+addWorksheet(wb, "cyto_scfa")
+writeData(wb, "cyto_scfa", df_summ)
+```
+
+# Outputs
+
+```{r}
+saveWorkbook(wb, file = "../results/outputs/res_integrate.xlsx", overwrite = TRUE)
+```
+
+# Session information
+
+```{r, message = FALSE, warning = FALSE, comment = NA}
+sessionInfo()
+```
