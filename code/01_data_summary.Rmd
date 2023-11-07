@@ -149,7 +149,7 @@ summary_template =
          list("No" = ~ n_perc0(std == "no", na_rm = T),
               "Yes" = ~ n_perc0(std == "yes", na_rm = T),
               "Missing" = ~ n_perc0(std == "missing", na_rm = T)),
-       "Drug usage" = 
+       "Substance use" = 
          list("No" = ~ n_perc0(druguse == "no", na_rm = T),
               "Yes" = ~ n_perc0(druguse == "yes", na_rm = T),
               "Missing" = ~ n_perc0(druguse == "missing", na_rm = T)),
@@ -241,7 +241,7 @@ summary_template =
          list("No" = ~ n_perc0(std == "no", na_rm = T),
               "Yes" = ~ n_perc0(std == "yes", na_rm = T),
               "Missing" = ~ n_perc0(std == "missing", na_rm = T)),
-       "Drug usage" = 
+       "Substance use" = 
          list("No" = ~ n_perc0(druguse == "no", na_rm = T),
               "Yes" = ~ n_perc0(druguse == "yes", na_rm = T),
               "Missing" = ~ n_perc0(druguse == "missing", na_rm = T)),
@@ -287,7 +287,7 @@ tidy_model = broom::tidy(model) %>%
          label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
                    "Abx Use (Yes)", "STD (Yes)", 
                    "Smoke (Former)", "Smoke (Current)",
-                   "Drink (Heavy)", "Drug Use (Yes)",  "HBV (Resolved)", "HBV (Positive)"),
+                   "Drink (Heavy)", "Substance Use (Yes)",  "HBV (Resolved)", "HBV (Positive)"),
          label_factor = factor(label, levels = rev(sort(label))),
          p_value = round(p.value, 2),
          OR = exp(estimate),
@@ -425,7 +425,7 @@ tidy_model = broom::tidy(model) %>%
   mutate(label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
                    "Abx Use (Yes)", "STD (Yes)", 
                    "Smoke (Former)", "Smoke (Current)",
-                   "Drink (Heavy)", "Drug Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
+                   "Drink (Heavy)", "Substance Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
          label_factor = factor(label, levels = rev(sort(label))),
          p_value = round(wald_pvalue, 2),
          OR = exp(estimate),
@@ -562,7 +562,7 @@ tidy_model = broom::tidy(model) %>%
   mutate(label = c("Age", "Educa (Undergrad)", "Educa (Postgrad)", 
                    "Abx Use (Yes)", "STD (Yes)", 
                    "Smoke (Former)", "Smoke (Current)",
-                   "Drink (Heavy)", "Drug Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
+                   "Drink (Heavy)", "Substance Use (Yes)", "HBV (Resolved)", "HBV (Positive)"),
          label_factor = factor(label, levels = rev(sort(label))),
          p_value = round(wald_pvalue, 2),
          OR = exp(estimate),
