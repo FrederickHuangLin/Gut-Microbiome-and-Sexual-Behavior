@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2023-11-07" />
+<meta name="date" content="2024-02-23" />
 
 <title>Data Summary and Exploratory Analyses</title>
 
@@ -362,7 +362,7 @@ display: none;
 
 
 <h1 class="title toc-ignore">Data Summary and Exploratory Analyses</h1>
-<h4 class="date">November 07, 2023</h4>
+<h4 class="date">February 23, 2024</h4>
 
 </div>
 
@@ -372,6 +372,8 @@ display: none;
 counts</a></li>
 <li><a href="#demographic-information" id="toc-demographic-information">Demographic information</a>
 <ul>
+<li><a href="#the-distribution-of-exposure" id="toc-the-distribution-of-exposure">The distribution of
+exposure</a></li>
 <li><a href="#table-1-the-original-data" id="toc-table-1-the-original-data">Table 1: the original data</a></li>
 <li><a href="#table-1-the-tidy-data" id="toc-table-1-the-tidy-data">Table 1: the tidy data</a></li>
 <li><a href="#outcome-vs.-other-variables" id="toc-outcome-vs.-other-variables">Outcome vs. other
@@ -407,6 +409,15 @@ library(CLME)
 df_merge = read_csv(&quot;../data/df_merge.csv&quot;)
 df_v1 = df_merge %&gt;%
   filter(visit == &quot;v1&quot;)</code></pre>
+<pre class="r"><code>base_dir = &quot;../results&quot;
+sub_dirs = c(&quot;outputs&quot;, &quot;figures&quot;)
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}</code></pre>
 <div id="sequence-counts" class="section level1">
 <h1>Sequence counts</h1>
 <pre class="r"><code>df_seq = read_csv(&quot;../data/per-sample-fastq-counts.csv&quot;)
@@ -457,6 +468,23 @@ med_reads = median(df_seq$`Sequence count`)</code></pre>
 <li><p>G4: # receptive anal intercourse = 4 - 8</p></li>
 <li><p>G5: # receptive anal intercourse = 9 +</p></li>
 </ul>
+<div id="the-distribution-of-exposure" class="section level2">
+<h2>The distribution of exposure</h2>
+<pre class="r"><code>recept_anal = df_v1$recept_anal
+recept_anal = recept_anal[!is.na(recept_anal)]
+print(paste0(&quot;mean = &quot;, round(mean(recept_anal)),
+             &quot;, median = &quot;, median(recept_anal),
+             &quot;, min = &quot;, min(recept_anal),
+             &quot;, max = &quot;, max(recept_anal)))</code></pre>
+<pre><code>[1] &quot;mean = 4, median = 2, min = 0, max = 200&quot;</code></pre>
+<pre class="r"><code>p_expose = df_v1 %&gt;%
+  ggplot(aes(x = recept_anal)) +
+  geom_histogram(aes(y = ..count..), bins = 100, color = &quot;black&quot;, fill = &quot;lightblue1&quot;) +
+  labs(x = &quot;Number of Receptive Anal Intercourse&quot;, y = &quot;Frequency&quot;) + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))</code></pre>
+</div>
 <div id="table-1-the-original-data" class="section level2">
 <h2>Table 1: the original data</h2>
 <pre class="r"><code>options(qwraps2_markup = &quot;markdown&quot;)
@@ -1551,7 +1579,12 @@ p_exp_var_second</code></pre>
 </div>
 <div id="outputs" class="section level1">
 <h1>Outputs</h1>
-<pre class="r"><code>ggsave(filename = &quot;../results/figures/main_group_by_perc.pdf&quot;, plot = p_summ_prim,
+<pre class="r"><code>ggsave(filename = &quot;../results/figures/ext_expose.pdf&quot;, plot = p_expose,
+      width = 6.25, height = 5, units = &quot;in&quot;)
+ggsave(filename = &quot;../results/figures/ext_expose.jpeg&quot;, plot = p_expose,
+      width = 6.25, height = 5, units = &quot;in&quot;, dpi = 100)
+
+ggsave(filename = &quot;../results/figures/main_group_by_perc.pdf&quot;, plot = p_summ_prim,
       width = 6.25, height = 6, units = &quot;in&quot;)
 ggsave(filename = &quot;../results/figures/main_group_by_perc.jpeg&quot;, plot = p_summ_prim,
       width = 6.25, height = 6, units = &quot;in&quot;, dpi = 100)

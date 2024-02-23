@@ -26,6 +26,18 @@ options(DT.options = list(
   '#000', 'color': '#fff'});","}")))
 ```
 
+```{r}
+base_dir = "../results"
+sub_dirs = c("outputs", "figures")
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}
+```
+
 ```{r helper}
 get_upper_tri = function(cormat){
     cormat[lower.tri(cormat)] = NA
@@ -123,7 +135,6 @@ META = sample_data(meta_data)
 sample_names(META) = meta_data$sampleid
 TAX = tax_table(tax)
 otu_data = phyloseq(OTU, TAX, META)
-genus_data = aggregate_taxa(otu_data, "Genus")
 species_data = aggregate_taxa(otu_data, "Species")
 
 tse = mia::makeTreeSummarizedExperimentFromPhyloseq(otu_data)
@@ -133,8 +144,6 @@ tse2 = tse[, tse$group1 == "g2"]
 tse3 = tse[, tse$group1 == "g3"]
 tse4 = tse[, tse$group1 == "g4"]
 ```
-
-# Species level
 
 1. Number of stool samples `r phyloseq::nsamples(species_data)`,
 
@@ -146,9 +155,9 @@ key_species = c("A.muciniphila", "B.caccae", "B.fragilis", "B.uniformis",
                 "Methanobrevibacter spp.", "Odoribacter spp.")
 ```
 
-## Linear correlations {.tabset}
+# Linear correlations {.tabset}
 
-### Run SECOM
+## Run SECOM
 
 ```{r, warning=FALSE, message=FALSE}
 set.seed(123)
@@ -196,7 +205,7 @@ common_species = sapply(common_species, function(x)
                         strsplit(x, ":")[[1]][2]))
 ```
 
-### Visualization
+## Visualization
 
 ```{r}
 df_corr1 = data_preprocess(res_linear1, type = "linear", level = "Species", tax = key_species) %>%
@@ -230,9 +239,9 @@ fig_species_linear = df_fig %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-## Nonlinear correlations {.tabset}
+# Nonlinear correlations {.tabset}
 
-### Run SECOM
+## Run SECOM
 
 ```{r, warning=FALSE, message=FALSE}
 set.seed(123)
@@ -272,7 +281,7 @@ common_species = sapply(common_species, function(x)
                         strsplit(x, ":")[[1]][2]))
 ```
 
-### Visualization
+## Visualization
 
 ```{r}
 df_corr1 = data_preprocess(res_dist1, type = "dist", level = "Species", tax = key_species) %>%
@@ -306,176 +315,12 @@ fig_species_dist = df_fig %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-# Genus level
-
-1. Number of stool samples `r nsamples(genus_data)`,
-
-2. Number of taxa `r ntaxa(genus_data)`.
-
-```{r}
-key_genera = c("Akkermansia", "Alistipes", "Bacteroides", "Butyricimonas", 
-               "Dehalobacterium", "Methanobrevibacter", "Odoribacter")
-```
-
-## Linear correlations {.tabset}
-
-### Run SECOM
-
-```{r, warning=FALSE, message=FALSE}
-set.seed(123)
-res_linear1 = secom_linear(data = list(tse1), assay_name = "counts",
-                           tax_level = "Genus", pseudo = 0, 
-                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                           wins_quant = c(0.05, 0.95), method = "pearson", 
-                           soft = FALSE, thresh_len = 20, n_cv = 10, 
-                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_linear2 = secom_linear(data = list(tse2), assay_name = "counts",
-                           tax_level = "Genus", pseudo = 0, 
-                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                           wins_quant = c(0.05, 0.95), method = "pearson", 
-                           soft = FALSE, thresh_len = 20, n_cv = 10, 
-                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_linear3 = secom_linear(data = list(tse3), assay_name = "counts",
-                           tax_level = "Genus", pseudo = 0, 
-                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                           wins_quant = c(0.05, 0.95), method = "pearson", 
-                           soft = FALSE, thresh_len = 20, n_cv = 10, 
-                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_linear4 = secom_linear(data = list(tse4), assay_name = "counts",
-                           tax_level = "Genus", pseudo = 0, 
-                           prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                           wins_quant = c(0.05, 0.95), method = "pearson", 
-                           soft = FALSE, thresh_len = 20, n_cv = 10, 
-                           thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-
-genera1 = rownames(res_linear1$corr_fl)
-genera1 = genera1[grepl("Genus:", genera1)]
-genera2 = rownames(res_linear2$corr_fl)
-genera2 = genera2[grepl("Genus:", genera2)]
-genera3 = rownames(res_linear3$corr_fl)
-genera3 = genera3[grepl("Genus:", genera3)]
-genera4 = rownames(res_linear4$corr_fl)
-genera4 = genera4[grepl("Genus:", genera4)]
-common_genera = Reduce(intersect, list(genera1, genera2, genera3, genera4))
-common_genera = sapply(common_genera, function(x) strsplit(x, ":")[[1]][2])
-```
-
-### Visualization
-
-```{r}
-df_corr1 = data_preprocess(res_linear1, type = "linear", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G1")
-df_corr2 = data_preprocess(res_linear2, type = "linear", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G2")
-df_corr3 = data_preprocess(res_linear3, type = "linear", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G3")
-df_corr4 = data_preprocess(res_linear4, type = "linear", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G4")
-
-df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
-  unite("pair", var1:var2, sep = " vs. ")
-
-value_check = df_corr %>%
-  dplyr::group_by(pair) %>%
-  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
-
-non_empty_pair = value_check %>%
-  filter(empty_idx == FALSE) %>%
-  .$pair
-df_fig = df_corr %>%
-  dplyr::filter(pair %in% non_empty_pair)
-
-fig_genus_linear = df_fig %>%
-  ggline(x = "group", y = "value",
-         color = "steelblue", facet.by = "pair",
-         xlab = "", ylab = "", title = "Pearson Correlation") +
-  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
-  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
-  theme(plot.title = element_text(hjust = 0.5))
-
-fig_genus_linear
-```
-
-## Nonlinear correlations {.tabset}
-
-### Run SECOM
-
-```{r, warning=FALSE, message=FALSE}
-set.seed(123)
-res_dist1 = secom_dist(data = list(tse1), assay_name = "counts",
-                       tax_level = "Genus", pseudo = 0, 
-                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                       wins_quant = c(0.05, 0.95),
-                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_dist2 = secom_dist(data = list(tse2), assay_name = "counts",
-                       tax_level = "Genus", pseudo = 0, 
-                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                       wins_quant = c(0.05, 0.95),
-                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_dist3 = secom_dist(data = list(tse3), assay_name = "counts",
-                       tax_level = "Genus", pseudo = 0, 
-                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                       wins_quant = c(0.05, 0.95),
-                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-res_dist4 = secom_dist(data = list(tse4), assay_name = "counts",
-                       tax_level = "Genus", pseudo = 0, 
-                       prv_cut = 0.1, lib_cut = 1000, corr_cut = 0.5, 
-                       wins_quant = c(0.05, 0.95),
-                       R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)
-
-genera1 = rownames(res_dist1$dcorr_fl)
-genera1 = genera1[grepl("Genus:", genera1)]
-genera2 = rownames(res_dist2$dcorr_fl)
-genera2 = genera2[grepl("Genus:", genera2)]
-genera3 = rownames(res_dist3$dcorr_fl)
-genera3 = genera3[grepl("Genus:", genera3)]
-genera4 = rownames(res_dist4$dcorr_fl)
-genera4 = genera4[grepl("Genus:", genera4)]
-common_genera = Reduce(intersect, list(genera1, genera2, genera3, genera4))
-common_genera = sapply(common_genera, function(x) strsplit(x, ":")[[1]][2])
-```
-
-### Visualization
-
-```{r}
-df_corr1 = data_preprocess(res_dist1, type = "dist", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G1")
-df_corr2 = data_preprocess(res_dist2, type = "dist", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G2")
-df_corr3 = data_preprocess(res_dist3, type = "dist", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G3")
-df_corr4 = data_preprocess(res_dist4, type = "dist", level = "Genus", tax = key_genera) %>%
-  dplyr::mutate(group = "G4")
-
-df_corr = do.call('rbind', list(df_corr1, df_corr2, df_corr3, df_corr4)) %>%
-  unite("pair", var1:var2, sep = " vs. ")
-
-value_check = df_corr %>%
-  dplyr::group_by(pair) %>%
-  dplyr::summarise(empty_idx = ifelse(all(value == 0), TRUE, FALSE))
-
-non_empty_pair = value_check %>%
-  filter(empty_idx == FALSE) %>%
-  .$pair
-df_fig = df_corr %>%
-  dplyr::filter(pair %in% non_empty_pair)
-
-fig_genus_dist = df_fig %>%
-  ggline(x = "group", y = "value",
-         color = "steelblue", facet.by = "pair",
-         xlab = "", ylab = "", title = "Distance Correlation") +
-  scale_y_continuous(breaks = seq(0, 0.8, 0.2), limits = c(0, 0.9)) +
-  geom_text(aes(label = round(value, 2)), vjust = -0.5) +
-  theme(plot.title = element_text(hjust = 0.5))
-fig_genus_dist
-```
-
 # Outputs
 
 ```{r}
-ggsave(file = "../results/figures/supp_secom.pdf", 
+ggsave(file = "../results/figures/ext_secom.pdf", 
        plot = fig_species_linear, height = 6, width = 10, units = "in")
-ggsave(file = "../results/figures/supp_secom.jpeg", 
+ggsave(file = "../results/figures/ext_secom.jpeg", 
        plot = fig_species_linear, height = 6, width = 10, units = "in", dpi = 100)
 ```
 

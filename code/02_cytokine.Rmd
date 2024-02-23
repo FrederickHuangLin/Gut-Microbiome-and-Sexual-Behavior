@@ -23,6 +23,18 @@ library(kableExtra)
 options(digits = 3)
 ```
 
+```{r}
+base_dir = "../results"
+sub_dirs = c("outputs", "figures")
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}
+```
+
 ```{r helper}
 plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
   overall_p = clme_obj$p.value

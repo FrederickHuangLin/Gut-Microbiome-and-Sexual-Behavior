@@ -24,6 +24,18 @@ options(DT.options = list(
   '#000', 'color': '#fff'});","}")))
 ```
 
+```{r}
+base_dir = "../results"
+sub_dirs = c("outputs", "figures")
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}
+```
+
 ```{r helper}
 lm_eqn = function(m){
   
@@ -90,7 +102,6 @@ df_v1 = df_v1 %>%
 
 # Microbiome data
 bias_corr_species = read_csv("../results/outputs/bias_corr_species.csv")
-bias_corr_genera = read_csv("../results/outputs/bias_corr_genus.csv")
 
 bias_corr_species = bias_corr_species %>%
   rowwise() %>%
@@ -100,17 +111,8 @@ bias_corr_species = bias_corr_species %>%
                         strsplit(species, ":")[[1]][2])) %>%
   ungroup() 
 
-bias_corr_genera = bias_corr_genera %>%
-  rowwise() %>%
-  filter(grepl("Genus:", genus)) %>%
-  mutate(genus = strsplit(genus, ":")[[1]][2]) %>%
-  ungroup() 
-
 # Significant taxa from ANCOM-BC2
 sig_species = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 1) %>%
-  filter(p_val < 0.05) %>%
-  .$taxon
-sig_genera = read.xlsx("../results/outputs/res_ancombc2.xlsx", sheet = 2) %>%
   filter(p_val < 0.05) %>%
   .$taxon
 
@@ -124,32 +126,16 @@ df_da_species = data.frame(df_da_species[-1, , drop = FALSE], check.names = FALS
   mutate(across(-1, as.numeric))
 df_da_species[is.na(df_da_species)] = 0
 
-df_da_genera =  bias_corr_genera %>%
-  filter(genus %in% sig_genera)
-df_da_genera = t(df_da_genera)
-colnames(df_da_genera) = df_da_genera[1, ]
-df_da_genera = data.frame(df_da_genera[-1, , drop = FALSE], check.names = FALSE) %>%
-  rownames_to_column("sampleid") %>%
-  mutate(across(-1, as.numeric))
-df_da_genera[is.na(df_da_genera)] = 0
-
 df_add_species = df_v1 %>%
   dplyr::left_join(df_da_species, by = "sampleid")
-df_add_genus = df_v1 %>%
-  dplyr::left_join(df_da_genera, by = "sampleid")
-
 df_add_species = data.frame(df_add_species)
-df_add_genus = data.frame(df_add_genus)
 
 sig_species = make.names(sig_species)
-sig_genera = make.names(sig_genera)
 
 wb = createWorkbook()
 ```
 
-# Microbiome vs. cytokines {.tabset}
-
-## Cytokines vs. DA species
+# Microbiome vs. cytokines 
 
 ```{r}
 t_formula = as.formula(paste0("cbind(crp, cd14, cd163) ~ ",
@@ -170,30 +156,7 @@ addWorksheet(wb, "cyto_species")
 writeData(wb, "cyto_species", df_summ)
 ```
 
-## Cytokines vs. DA genera
-
-```{r}
-t_formula = as.formula(paste0("cbind(crp, cd14, cd163) ~ ",
-                              paste0(sig_genera, collapse = " + ")))
-fit = manova(t_formula, data = df_add_genus)
-
-summ = summary(fit, test = "Pillai")
-summ
-df_summ = data.frame(summ$stats) %>%
-  rownames_to_column("Taxon") %>%
-  dplyr::transmute(Taxon,
-                   approx.F = signif(approx.F, 2),
-                   num.Df, den.Df, 
-                   P = round(`Pr..F.`, 2)) %>%
-  dplyr::filter(Taxon != "Residuals")
-
-addWorksheet(wb, "cyto_genera")
-writeData(wb, "cyto_genera", df_summ)
-```
-
-# Microbiome vs. SCFAs {.tabset}
-
-## SCFAs vs. DA species
+# Microbiome vs. SCFAs
 
 ```{r}
 t_formula = as.formula(paste0("cbind(acetate, valerate) ~ ",
@@ -212,27 +175,6 @@ df_summ = data.frame(summ$stats) %>%
 
 addWorksheet(wb, "scfa_species")
 writeData(wb, "scfa_species", df_summ)
-```
-
-## SCFAs vs. DA genera
-
-```{r}
-t_formula = as.formula(paste0("cbind(acetate, valerate) ~ ",
-                              paste0(sig_genera, collapse = " + ")))
-fit = manova(t_formula, data = df_add_genus)
-
-summ = summary(fit, test = "Pillai")
-summ
-df_summ = data.frame(summ$stats) %>%
-  rownames_to_column("Taxon") %>%
-  dplyr::transmute(Taxon,
-                   approx.F = signif(approx.F, 2),
-                   num.Df, den.Df, 
-                   P = round(`Pr..F.`, 2)) %>%
-  dplyr::filter(Taxon != "Residuals")
-
-addWorksheet(wb, "scfa_genera")
-writeData(wb, "scfa_genera", df_summ)
 ```
 
 # Cytokines vs. SCFAs

@@ -26,6 +26,18 @@ df_v1 = df_merge %>%
   filter(visit == "v1")
 ```
 
+```{r}
+base_dir = "../results"
+sub_dirs = c("outputs", "figures")
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}
+```
+
 # Sequence counts
 
 ```{r}
@@ -86,6 +98,24 @@ Secondary group:
   + G4: # receptive anal intercourse = 4 - 8
   
   + G5: # receptive anal intercourse = 9 +
+  
+## The distribution of exposure
+
+```{r}
+recept_anal = df_v1$recept_anal
+recept_anal = recept_anal[!is.na(recept_anal)]
+print(paste0("mean = ", round(mean(recept_anal)),
+             ", median = ", median(recept_anal),
+             ", min = ", min(recept_anal),
+             ", max = ", max(recept_anal)))
+p_expose = df_v1 %>%
+  ggplot(aes(x = recept_anal)) +
+  geom_histogram(aes(y = ..count..), bins = 100, color = "black", fill = "lightblue1") +
+  labs(x = "Number of Receptive Anal Intercourse", y = "Frequency") + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+```
 
 ## Table 1: the original data
 
@@ -630,6 +660,11 @@ p_exp_var_second
 # Outputs
 
 ```{r}
+ggsave(filename = "../results/figures/ext_expose.pdf", plot = p_expose,
+      width = 6.25, height = 5, units = "in")
+ggsave(filename = "../results/figures/ext_expose.jpeg", plot = p_expose,
+      width = 6.25, height = 5, units = "in", dpi = 100)
+
 ggsave(filename = "../results/figures/main_group_by_perc.pdf", plot = p_summ_prim,
       width = 6.25, height = 6, units = "in")
 ggsave(filename = "../results/figures/main_group_by_perc.jpeg", plot = p_summ_prim,

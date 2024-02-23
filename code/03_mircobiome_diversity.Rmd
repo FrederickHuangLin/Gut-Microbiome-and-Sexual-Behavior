@@ -25,6 +25,18 @@ library(rstatix)
 library(RVAideMemoire)
 ```
 
+```{r}
+base_dir = "../results"
+sub_dirs = c("outputs", "figures")
+
+for (sub_dir in sub_dirs) {
+  dir_path = file.path(base_dir, sub_dir)
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
+}
+```
+
 ```{r helper}
 plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, decreasing = FALSE, ...) {
   overall_p = clme_obj$p.value
@@ -123,8 +135,10 @@ sample_names(META) = meta_data$sampleid
 TAX = tax_table(tax)
 otu_data = phyloseq(OTU, TAX, META, tree)
 species_data = aggregate_taxa(otu_data, "Species")
+th = quantile(sample_sums(species_data), 0.1) # 12,158
+species_data = prune_samples(sample_sums(species_data)>=th, species_data)
 species_rarefied = rarefy_even_depth(species_data, rngseed = 1, 
-                                     sample.size = 0.9 * min(sample_sums(species_data)), 
+                                     sample.size = th, 
                                      replace = FALSE)
 ```
 
@@ -183,7 +197,7 @@ summ(stat_test2)
 df_stat = data.frame(p = round(summary(stat_test1)$coef[2:4, "Pr(>|t|)"], 2)) %>%
   mutate(x = "group", y = "value", measure = "Observed", 
          group1 = "G1", group2 = c("G2", "G3", "G4"),
-         y.position = max(stat_test1$model$value) + seq(0, 2, 1)) %>%
+         y.position = max(stat_test1$model$value) + seq(0, 4, 2)) %>%
   bind_rows(
     data.frame(p = round(summary(stat_test2)$coef[2:4, "Pr(>|t|)"], 2)) %>%
       mutate(x = "group", y = "value", measure = "Shannon", 
@@ -215,7 +229,7 @@ fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, see
 summ_fit1 = summary(fit1)
 
 fig1_increase_species = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 7, p_gap = 0.7, ann_pos = 6.5)
+                                  y_min = 0, y_max = 30, p_gap = 2, ann_pos = 27)
 fig1_increase_species = fig1_increase_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -224,7 +238,7 @@ fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed
 summ_fit2 = summary(fit2)
 
 fig2_increase_species = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 1.4, p_gap = 0.2, ann_pos = 1.3)
+                                  y_min = 0, y_max = 1.6, p_gap = 0.15, ann_pos = 1.5)
 fig2_increase_species = fig2_increase_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
@@ -239,7 +253,7 @@ fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, see
 summ_fit1 = summary(fit1)
 
 fig1_decrease_species = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 7, p_gap = 0.8, ann_pos = 6.5, decreasing = TRUE)
+                                  y_min = 0, y_max = 30, p_gap = 2.5, ann_pos = 27, decreasing = TRUE)
 fig1_decrease_species = fig1_decrease_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -248,7 +262,7 @@ fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed
 summ_fit2 = summary(fit2)
 
 fig2_decrease_species = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 1.4, p_gap = 0.1, ann_pos = 1.3, decreasing = TRUE)
+                                  y_min = 0, y_max = 1.6, p_gap = 0.15, ann_pos = 1.5, decreasing = TRUE)
 fig2_decrease_species = fig2_decrease_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
@@ -344,7 +358,7 @@ summ(stat_test2)
 df_stat = data.frame(p = round(summary(stat_test1)$coef[2:5, "Pr(>|t|)"], 2)) %>%
   mutate(x = "group", y = "value", measure = "Observed", 
          group1 = "G1", group2 = c("G2", "G3", "G4", "G5"),
-         y.position = max(stat_test1$model$value) + seq(0, 3, 1)) %>%
+         y.position = max(stat_test1$model$value) + seq(0, 6, 2)) %>%
   bind_rows(
     data.frame(p = round(summary(stat_test2)$coef[2:5, "Pr(>|t|)"], 2)) %>%
       mutate(x = "group", y = "value", measure = "Shannon", 
@@ -377,7 +391,7 @@ summ_fit1 = summary(fit1)
 
 fig1_increase_species_secondary = plot_clme(summ_fit1, 
                                             group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 7, p_gap = 0.7, ann_pos = 6.5)
+                                            y_min = 0, y_max = 30, p_gap = 2, ann_pos = 27)
 fig1_increase_species_secondary = fig1_increase_species_secondary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -387,7 +401,7 @@ summ_fit2 = summary(fit2)
 
 fig2_increase_species_secondary = plot_clme(summ_fit2, 
                                             group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 1.4, p_gap = 0.2, ann_pos = 1.3)
+                                            y_min = 0, y_max = 1.8, p_gap = 0.2, ann_pos = 1.6)
 fig2_increase_species_secondary = fig2_increase_species_secondary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
@@ -403,7 +417,7 @@ summ_fit1 = summary(fit1)
 
 fig1_decrease_species_secondary = plot_clme(summ_fit1, 
                                             group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 7, p_gap = 0.8, ann_pos = 6.5, decreasing = TRUE)
+                                            y_min = 0, y_max = 30, p_gap = 2.5, ann_pos = 27, decreasing = TRUE)
 fig1_decrease_species_secondary = fig1_decrease_species_secondary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -413,7 +427,7 @@ summ_fit2 = summary(fit2)
 
 fig2_decrease_species_secondary = plot_clme(summ_fit2, 
                                             group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 1.4, p_gap = 0.1, ann_pos = 1.3, decreasing = TRUE)
+                                            y_min = 0, y_max = 1.6, p_gap = 0.2, ann_pos = 1.5, decreasing = TRUE)
 fig2_decrease_species_secondary = fig2_decrease_species_secondary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
@@ -471,17 +485,17 @@ p_alpha = ggarrange(fig1_increase_species, fig2_increase_species,
                     fig1_decrease_species, fig2_decrease_species,
                     ncol = 2, nrow = 2, common.legend = TRUE, legend = "top",
                     labels = c("a", "b", "c", "d"))
-ggsave(filename = "../results/figures/supp_alpha.pdf", plot = p_alpha,
+ggsave(filename = "../results/figures/ext_alpha.pdf", plot = p_alpha,
        width = 8, height = 8, units = "in")
-ggsave(filename = "../results/figures/supp_alpha.jpeg", plot = p_alpha,
+ggsave(filename = "../results/figures/ext_alpha.jpeg", plot = p_alpha,
        width = 8, height = 8, units = "in", dpi = 100)
 
 p_beta = ggarrange(fig_beta_species, tab_beta_species,  
                    ncol = 2, nrow = 1, widths = c(1, 0.4),
                    common.legend = TRUE, legend = "top")
-ggsave(filename = "../results/figures/supp_beta.pdf", plot = p_beta,
+ggsave(filename = "../results/figures/ext_beta.pdf", plot = p_beta,
        width = 10, height = 6, units = "in")
-ggsave(filename = "../results/figures/supp_beta.jpeg", plot = p_beta,
+ggsave(filename = "../results/figures/ext_beta.jpeg", plot = p_beta,
        width = 10, height = 6, units = "in", dpi = 100)
 ```
 
