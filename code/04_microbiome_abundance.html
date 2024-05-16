@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2024-02-23" />
+<meta name="date" content="2024-05-16" />
 
 <title>Differential Abundance Analyses</title>
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Differential Abundance Analyses</h1>
-<h4 class="date">February 23, 2024</h4>
+<h4 class="date">May 16, 2024</h4>
 
 
 
@@ -369,50 +369,65 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>}</span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># OTU table</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>otu_table <span class="ot">=</span> <span class="fu">read_tsv</span>(<span class="st">&quot;../data/otu-table.tsv&quot;</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>otu_id <span class="ot">=</span> otu_table<span class="sc">$</span><span class="st">`</span><span class="at">#OTU ID</span><span class="st">`</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>otu_table <span class="ot">=</span> <span class="fu">data.frame</span>(otu_table[, <span class="sc">-</span><span class="dv">1</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>, <span class="at">row.names =</span> otu_id)</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co"># Taxonomy table</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">read_tsv</span>(<span class="st">&quot;../data/taxonomy.tsv&quot;</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>otu_id <span class="ot">=</span> tax<span class="sc">$</span><span class="st">`</span><span class="at">Feature ID</span><span class="st">`</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">data.frame</span>(tax[, <span class="sc">-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)], <span class="at">row.names =</span> otu_id)</span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>tax <span class="ot">=</span> tax <span class="sc">%&gt;%</span> </span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="fu">separate</span>(<span class="at">col =</span> Taxon, </span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>           <span class="at">into =</span> <span class="fu">c</span>(<span class="st">&quot;Kingdom&quot;</span>, <span class="st">&quot;Phylum&quot;</span>, <span class="st">&quot;Class&quot;</span>, <span class="st">&quot;Order&quot;</span>, </span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>                    <span class="st">&quot;Family&quot;</span>, <span class="st">&quot;Genus&quot;</span>, <span class="st">&quot;Species&quot;</span>),</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>           <span class="at">sep =</span> <span class="st">&quot;;&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate_all</span>(<span class="cf">function</span>(x) <span class="fu">strsplit</span>(x, <span class="st">&quot;__&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>]) <span class="sc">%&gt;%</span></span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Species =</span> <span class="fu">ifelse</span>(<span class="sc">!</span><span class="fu">is.na</span>(Species) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(Genus),</span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>                          <span class="fu">paste</span>(<span class="fu">ifelse</span>(<span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>] <span class="sc">==</span> <span class="st">&quot;[&quot;</span>,</span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>                                       <span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>],</span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>                                       <span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>]), Species, <span class="at">sep =</span> <span class="st">&quot;.&quot;</span>),</span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>                          <span class="cn">NA</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">as.matrix</span>(tax)</span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="fu">rownames</span>(tax) <span class="ot">=</span> otu_id</span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>tax[tax <span class="sc">==</span> <span class="st">&quot;&quot;</span>] <span class="ot">=</span> <span class="cn">NA</span></span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co"># Meta data</span></span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>meta_data <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../data/df_v1.csv&quot;</span>)</span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>meta_data<span class="sc">$</span>status <span class="ot">=</span> <span class="fu">factor</span>(meta_data<span class="sc">$</span>status, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;nc&quot;</span>, <span class="st">&quot;sc&quot;</span>))</span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>meta_data<span class="sc">$</span>time2aids <span class="ot">=</span> <span class="fu">factor</span>(meta_data<span class="sc">$</span>time2aids,</span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>                             <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;never&quot;</span>, <span class="st">&quot;&gt; 10 yrs&quot;</span>,</span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>                                        <span class="st">&quot;5 - 10 yrs&quot;</span>, <span class="st">&quot;&lt; 5 yrs&quot;</span>))</span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a></span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a><span class="co"># Phyloseq object</span></span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>OTU <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">otu_table</span>(otu_table, <span class="at">taxa_are_rows =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>META <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">sample_data</span>(meta_data)</span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>phyloseq<span class="sc">::</span><span class="fu">sample_names</span>(META) <span class="ot">=</span> meta_data<span class="sc">$</span>sampleid</span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>TAX <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">tax_table</span>(tax)</span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>otu_data <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">phyloseq</span>(OTU, TAX, META)</span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>otu_data <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">subset_samples</span>(otu_data, group1 <span class="sc">!=</span> <span class="st">&quot;missing&quot;</span>)</span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a></span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>genus_data <span class="ot">=</span> microbiome<span class="sc">::</span><span class="fu">aggregate_taxa</span>(otu_data, <span class="st">&quot;Genus&quot;</span>)</span>
-<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>species_data <span class="ot">=</span> microbiome<span class="sc">::</span><span class="fu">aggregate_taxa</span>(otu_data, <span class="st">&quot;Species&quot;</span>)</span>
-<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a></span>
-<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>tse <span class="ot">=</span> mia<span class="sc">::</span><span class="fu">makeTreeSummarizedExperimentFromPhyloseq</span>(otu_data)</span>
-<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>tse</span></code></pre></div>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># Taxonomy table</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">read_tsv</span>(<span class="st">&quot;../data/taxonomy.tsv&quot;</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># Metadata</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>meta_data <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">&quot;../data/df_v1.csv&quot;</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co"># Data cleaning</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co"># Generate a combined OTU/taxonomy table </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>combined_table <span class="ot">=</span> otu_table <span class="sc">%&gt;%</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    tax <span class="sc">%&gt;%</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>      <span class="fu">select</span>(<span class="st">`</span><span class="at">Feature ID</span><span class="st">`</span>, Taxon),</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">join_by</span>(<span class="st">`</span><span class="at">#OTU ID</span><span class="st">`</span> <span class="sc">==</span> <span class="st">`</span><span class="at">Feature ID</span><span class="st">`</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  )</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co"># Clean the otu table</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>otu_id <span class="ot">=</span> otu_table<span class="sc">$</span><span class="st">`</span><span class="at">#OTU ID</span><span class="st">`</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>otu_table <span class="ot">=</span> <span class="fu">data.frame</span>(otu_table[, <span class="sc">-</span><span class="dv">1</span>], <span class="at">check.names =</span> <span class="cn">FALSE</span>, <span class="at">row.names =</span> otu_id)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co"># Clean the taxonomy table</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>otu_id <span class="ot">=</span> tax<span class="sc">$</span><span class="st">`</span><span class="at">Feature ID</span><span class="st">`</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">data.frame</span>(tax[, <span class="sc">-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)], <span class="at">row.names =</span> otu_id)</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>tax <span class="ot">=</span> tax <span class="sc">%&gt;%</span> </span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>  <span class="fu">separate</span>(<span class="at">col =</span> Taxon, </span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>           <span class="at">into =</span> <span class="fu">c</span>(<span class="st">&quot;Kingdom&quot;</span>, <span class="st">&quot;Phylum&quot;</span>, <span class="st">&quot;Class&quot;</span>, <span class="st">&quot;Order&quot;</span>, </span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>                    <span class="st">&quot;Family&quot;</span>, <span class="st">&quot;Genus&quot;</span>, <span class="st">&quot;Species&quot;</span>),</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>           <span class="at">sep =</span> <span class="st">&quot;;&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate_all</span>(<span class="cf">function</span>(x) <span class="fu">strsplit</span>(x, <span class="st">&quot;__&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>]) <span class="sc">%&gt;%</span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Species =</span> <span class="fu">ifelse</span>(<span class="sc">!</span><span class="fu">is.na</span>(Species) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(Genus),</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>                          <span class="fu">paste</span>(<span class="fu">ifelse</span>(<span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>] <span class="sc">==</span> <span class="st">&quot;[&quot;</span>,</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>                                       <span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">2</span>],</span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>                                       <span class="fu">strsplit</span>(Genus, <span class="st">&quot;&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>]), Species, <span class="at">sep =</span> <span class="st">&quot;.&quot;</span>),</span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>                          <span class="cn">NA</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>tax <span class="ot">=</span> <span class="fu">as.matrix</span>(tax)</span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a><span class="fu">rownames</span>(tax) <span class="ot">=</span> otu_id</span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>tax[tax <span class="sc">==</span> <span class="st">&quot;&quot;</span>] <span class="ot">=</span> <span class="cn">NA</span></span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a></span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a><span class="co"># Clean the metadata</span></span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>meta_data<span class="sc">$</span>status <span class="ot">=</span> <span class="fu">factor</span>(meta_data<span class="sc">$</span>status, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;nc&quot;</span>, <span class="st">&quot;sc&quot;</span>))</span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>meta_data<span class="sc">$</span>time2aids <span class="ot">=</span> <span class="fu">factor</span>(meta_data<span class="sc">$</span>time2aids,</span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>                             <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;never&quot;</span>, <span class="st">&quot;&gt; 10 yrs&quot;</span>,</span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>                                        <span class="st">&quot;5 - 10 yrs&quot;</span>, <span class="st">&quot;&lt; 5 yrs&quot;</span>))</span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a></span>
+<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a><span class="co"># Phyloseq object</span></span>
+<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>OTU <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">otu_table</span>(otu_table, <span class="at">taxa_are_rows =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a>META <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">sample_data</span>(meta_data)</span>
+<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a>phyloseq<span class="sc">::</span><span class="fu">sample_names</span>(META) <span class="ot">=</span> meta_data<span class="sc">$</span>sampleid</span>
+<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a>TAX <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">tax_table</span>(tax)</span>
+<span id="cb3-54"><a href="#cb3-54" tabindex="-1"></a>otu_data <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">phyloseq</span>(OTU, TAX, META)</span>
+<span id="cb3-55"><a href="#cb3-55" tabindex="-1"></a>otu_data <span class="ot">=</span> phyloseq<span class="sc">::</span><span class="fu">subset_samples</span>(otu_data, group1 <span class="sc">!=</span> <span class="st">&quot;missing&quot;</span>)</span>
+<span id="cb3-56"><a href="#cb3-56" tabindex="-1"></a></span>
+<span id="cb3-57"><a href="#cb3-57" tabindex="-1"></a>genus_data <span class="ot">=</span> microbiome<span class="sc">::</span><span class="fu">aggregate_taxa</span>(otu_data, <span class="st">&quot;Genus&quot;</span>)</span>
+<span id="cb3-58"><a href="#cb3-58" tabindex="-1"></a>species_data <span class="ot">=</span> microbiome<span class="sc">::</span><span class="fu">aggregate_taxa</span>(otu_data, <span class="st">&quot;Species&quot;</span>)</span>
+<span id="cb3-59"><a href="#cb3-59" tabindex="-1"></a></span>
+<span id="cb3-60"><a href="#cb3-60" tabindex="-1"></a>tse <span class="ot">=</span> mia<span class="sc">::</span><span class="fu">makeTreeSummarizedExperimentFromPhyloseq</span>(otu_data)</span>
+<span id="cb3-61"><a href="#cb3-61" tabindex="-1"></a>tse</span></code></pre></div>
 <pre><code>class: TreeSummarizedExperiment 
 dim: 6111 241 
 metadata(0):
@@ -473,7 +488,8 @@ colTree: NULL</code></pre>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>bias_correct_log_table <span class="ot">=</span> output<span class="sc">$</span>bias_correct_log_table</span>
 <span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>bias_correct_log_table <span class="ot">=</span> bias_correct_log_table <span class="sc">%&gt;%</span></span>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">&quot;species&quot;</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">write_csv</span>(bias_correct_log_table, <span class="st">&quot;../results/outputs/bias_corr_species.csv&quot;</span>)</span></code></pre></div>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="fu">write_csv</span>(bias_correct_log_table, <span class="st">&quot;../results/outputs/bias_corr_species.csv&quot;</span>)</span></code></pre></div>
 </div>
 <div id="structural-zeros" class="section level2">
 <h2>Structural zeros</h2>
@@ -521,12 +537,12 @@ colTree: NULL</code></pre>
 <span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(fc2<span class="sc">:</span>fc4, <span class="at">names_to =</span> <span class="st">&quot;group&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;value&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">color =</span> <span class="fu">ifelse</span>(q_val <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="st">&quot;seagreen&quot;</span>, <span class="st">&quot;black&quot;</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(color))</span>
-<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>df_fig_group<span class="sc">$</span>group <span class="ot">=</span> <span class="fu">recode</span>(df_fig_group<span class="sc">$</span>group, <span class="st">`</span><span class="at">fc2</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G2 - G1&quot;</span>, </span>
-<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>                            <span class="st">`</span><span class="at">fc3</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G3 - G1&quot;</span>, <span class="st">`</span><span class="at">fc4</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G4 - G1&quot;</span>)</span></code></pre></div>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>df_fig_group<span class="sc">$</span>group <span class="ot">=</span> <span class="fu">recode</span>(df_fig_group<span class="sc">$</span>group, <span class="st">`</span><span class="at">fc2</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G2&quot;</span>, </span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>                            <span class="st">`</span><span class="at">fc3</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G3&quot;</span>, <span class="st">`</span><span class="at">fc4</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;G4&quot;</span>)</span></code></pre></div>
 </div>
 </div>
-<div id="seroconversion-status-at-species-level" class="section level1 tabset">
-<h1 class="tabset">Seroconversion status at species level</h1>
+<div id="hiv-1-infection-status-at-species-level" class="section level1 tabset">
+<h1 class="tabset">HIV-1 infection status at species level</h1>
 <div id="run-ancombc-2-1" class="section level2">
 <h2>Run ANCOMBC-2</h2>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
@@ -556,7 +572,7 @@ colTree: NULL</code></pre>
 <span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a></span>
 <span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>df_fig_status <span class="ot">=</span> res_prim <span class="sc">%&gt;%</span></span>
 <span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>  <span class="fu">transmute</span>(taxon, </span>
-<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>            <span class="at">group =</span> <span class="st">&quot;SC - NC&quot;</span>,</span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>            <span class="at">group =</span> <span class="st">&quot;Case - Ctrl&quot;</span>,</span>
 <span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>            <span class="at">value =</span> <span class="fu">round</span>(<span class="fu">exp</span>(lfc_statussc), <span class="dv">2</span>),</span>
 <span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>            p_statussc, q_statussc, passed_ss_statussc) <span class="sc">%&gt;%</span></span>
 <span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">color =</span> <span class="fu">ifelse</span>(q_statussc <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="st">&quot;seagreen&quot;</span>, <span class="st">&quot;black&quot;</span>)) <span class="sc">%&gt;%</span></span>
@@ -566,60 +582,61 @@ colTree: NULL</code></pre>
 <div id="outputs" class="section level1">
 <h1>Outputs</h1>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">saveWorkbook</span>(wb, <span class="at">file =</span> <span class="st">&quot;../results/outputs/res_ancombc2.xlsx&quot;</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co"># Overlapped taxa</span></span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>set1 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">intersect</span>(<span class="fu">unique</span>(df_fig_group<span class="sc">$</span>taxon), <span class="fu">unique</span>(df_fig_status<span class="sc">$</span>taxon)))</span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co"># Unique taxa</span></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>set2 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">setdiff</span>(<span class="fu">unique</span>(df_fig_group<span class="sc">$</span>taxon), set1))</span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>set3 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">setdiff</span>(<span class="fu">unique</span>(df_fig_status<span class="sc">$</span>taxon), set1))</span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co"># ANCOM-BC2 trend test results by group</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>df_fig_group<span class="sc">$</span>taxon <span class="ot">=</span> <span class="fu">factor</span>(df_fig_group<span class="sc">$</span>taxon, <span class="at">levels =</span> <span class="fu">c</span>(set1, set2))</span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>distinct_df <span class="ot">=</span> df_fig_group <span class="sc">%&gt;%</span> </span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(taxon, color) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
-<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>tax_color <span class="ot">=</span> <span class="fu">setNames</span>(distinct_df<span class="sc">$</span>color, distinct_df<span class="sc">$</span>taxon)[<span class="fu">c</span>(set1, set2)]</span>
-<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a></span>
-<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>cell_max <span class="ot">=</span> <span class="fu">max</span>(<span class="fu">abs</span>(df_fig_group<span class="sc">$</span>value))</span>
-<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>fig_group_species <span class="ot">=</span> df_fig_group <span class="sc">%&gt;%</span></span>
-<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> group, <span class="at">y =</span> taxon, <span class="at">fill =</span> value)) <span class="sc">+</span></span>
-<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
-<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>  <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;blue&quot;</span>, <span class="at">high =</span> <span class="st">&quot;red&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>,</span>
-<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a>                       <span class="at">na.value =</span> <span class="st">&quot;white&quot;</span>, <span class="at">midpoint =</span> <span class="dv">1</span>,</span>
-<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>                       <span class="at">limit =</span> <span class="fu">c</span>(<span class="dv">0</span>, cell_max), <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(group, taxon, <span class="at">label =</span> value), <span class="at">color =</span> <span class="st">&quot;black&quot;</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
-<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">title =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
-<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> tax_color))</span>
-<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a></span>
-<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a><span class="co"># ANCOM-BC2 trend test results by status</span></span>
-<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a>df_fig_status<span class="sc">$</span>taxon <span class="ot">=</span> <span class="fu">factor</span>(df_fig_status<span class="sc">$</span>taxon, <span class="at">levels =</span> <span class="fu">c</span>(set1, set3))</span>
-<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a>distinct_df <span class="ot">=</span> df_fig_status <span class="sc">%&gt;%</span> </span>
-<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(taxon, color) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
-<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a>tax_color <span class="ot">=</span> <span class="fu">setNames</span>(distinct_df<span class="sc">$</span>color, distinct_df<span class="sc">$</span>taxon)[<span class="fu">c</span>(set1, set3)]</span>
-<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a></span>
-<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a>cell_max <span class="ot">=</span> <span class="fu">max</span>(<span class="fu">abs</span>(df_fig_status<span class="sc">$</span>value))</span>
-<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a>fig_status_species <span class="ot">=</span> df_fig_status <span class="sc">%&gt;%</span></span>
-<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> group, <span class="at">y =</span> taxon, <span class="at">fill =</span> value)) <span class="sc">+</span></span>
-<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
-<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a>  <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;blue&quot;</span>, <span class="at">high =</span> <span class="st">&quot;red&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>,</span>
-<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a>                       <span class="at">na.value =</span> <span class="st">&quot;white&quot;</span>, <span class="at">midpoint =</span> <span class="dv">1</span>,</span>
-<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a>                       <span class="at">limit =</span> <span class="fu">c</span>(<span class="dv">0</span>, cell_max), <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(group, taxon, <span class="at">label =</span> value), <span class="at">color =</span> <span class="st">&quot;black&quot;</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
-<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">title =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
-<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> tax_color))</span>
-<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a></span>
-<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a>p_da <span class="ot">=</span> <span class="fu">ggarrange</span>(fig_group_species, fig_status_species, <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">nrow =</span> <span class="dv">1</span>,</span>
-<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a>                 <span class="at">common.legend =</span> <span class="cn">TRUE</span>, <span class="at">legend =</span> <span class="st">&quot;right&quot;</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>))</span>
-<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a></span>
-<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/main_ancombc2.pdf&quot;</span>, <span class="at">plot =</span> p_da, </span>
-<span id="cb12-53"><a href="#cb12-53" tabindex="-1"></a>       <span class="at">height =</span> <span class="dv">8</span>, <span class="at">width =</span> <span class="dv">12</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>)</span>
-<span id="cb12-54"><a href="#cb12-54" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/main_ancombc2.jpeg&quot;</span>, <span class="at">plot =</span> p_da, </span>
-<span id="cb12-55"><a href="#cb12-55" tabindex="-1"></a>       <span class="at">height =</span> <span class="dv">8</span>, <span class="at">width =</span> <span class="dv">12</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>, <span class="at">dpi =</span> <span class="dv">100</span>)</span></code></pre></div>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">write_csv</span>(combined_table, <span class="at">file =</span> <span class="st">&quot;../results/outputs/otu_tax_combine_table.csv&quot;</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># Overlapped taxa</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>set1 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">intersect</span>(<span class="fu">unique</span>(df_fig_group<span class="sc">$</span>taxon), <span class="fu">unique</span>(df_fig_status<span class="sc">$</span>taxon)))</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co"># Unique taxa</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>set2 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">setdiff</span>(<span class="fu">unique</span>(df_fig_group<span class="sc">$</span>taxon), set1))</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>set3 <span class="ot">=</span> base<span class="sc">::</span><span class="fu">sort</span>(base<span class="sc">::</span><span class="fu">setdiff</span>(<span class="fu">unique</span>(df_fig_status<span class="sc">$</span>taxon), set1))</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co"># ANCOM-BC2 trend test results by group</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>df_fig_group<span class="sc">$</span>taxon <span class="ot">=</span> <span class="fu">factor</span>(df_fig_group<span class="sc">$</span>taxon, <span class="at">levels =</span> <span class="fu">c</span>(set1, set2))</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>distinct_df <span class="ot">=</span> df_fig_group <span class="sc">%&gt;%</span> </span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(taxon, color) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>tax_color <span class="ot">=</span> <span class="fu">setNames</span>(distinct_df<span class="sc">$</span>color, distinct_df<span class="sc">$</span>taxon)[<span class="fu">c</span>(set1, set2)]</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>cell_max <span class="ot">=</span> <span class="fu">max</span>(<span class="fu">abs</span>(df_fig_group<span class="sc">$</span>value))</span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a>fig_group_species <span class="ot">=</span> df_fig_group <span class="sc">%&gt;%</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> group, <span class="at">y =</span> taxon, <span class="at">fill =</span> value)) <span class="sc">+</span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a>  <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;blue&quot;</span>, <span class="at">high =</span> <span class="st">&quot;red&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>                       <span class="at">na.value =</span> <span class="st">&quot;white&quot;</span>, <span class="at">midpoint =</span> <span class="dv">1</span>,</span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>                       <span class="at">limit =</span> <span class="fu">c</span>(<span class="dv">0</span>, cell_max), <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(group, taxon, <span class="at">label =</span> value), <span class="at">color =</span> <span class="st">&quot;black&quot;</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">title =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> tax_color))</span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a><span class="co"># ANCOM-BC2 trend test results by status</span></span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a>df_fig_status<span class="sc">$</span>taxon <span class="ot">=</span> <span class="fu">factor</span>(df_fig_status<span class="sc">$</span>taxon, <span class="at">levels =</span> <span class="fu">c</span>(set1, set3))</span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a>distinct_df <span class="ot">=</span> df_fig_status <span class="sc">%&gt;%</span> </span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(taxon, color) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a>tax_color <span class="ot">=</span> <span class="fu">setNames</span>(distinct_df<span class="sc">$</span>color, distinct_df<span class="sc">$</span>taxon)[<span class="fu">c</span>(set1, set3)]</span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a></span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a>cell_max <span class="ot">=</span> <span class="fu">max</span>(<span class="fu">abs</span>(df_fig_status<span class="sc">$</span>value))</span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a>fig_status_species <span class="ot">=</span> df_fig_status <span class="sc">%&gt;%</span></span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> group, <span class="at">y =</span> taxon, <span class="at">fill =</span> value)) <span class="sc">+</span></span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a>  <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;blue&quot;</span>, <span class="at">high =</span> <span class="st">&quot;red&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>,</span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a>                       <span class="at">na.value =</span> <span class="st">&quot;white&quot;</span>, <span class="at">midpoint =</span> <span class="dv">1</span>,</span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a>                       <span class="at">limit =</span> <span class="fu">c</span>(<span class="dv">0</span>, cell_max), <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(group, taxon, <span class="at">label =</span> value), <span class="at">color =</span> <span class="st">&quot;black&quot;</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">title =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> tax_color))</span>
+<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a></span>
+<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a>p_da <span class="ot">=</span> <span class="fu">ggarrange</span>(fig_group_species, fig_status_species, <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">nrow =</span> <span class="dv">1</span>,</span>
+<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a>                 <span class="at">common.legend =</span> <span class="cn">TRUE</span>, <span class="at">legend =</span> <span class="st">&quot;right&quot;</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>))</span>
+<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a></span>
+<span id="cb12-53"><a href="#cb12-53" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/main_ancombc2.pdf&quot;</span>, <span class="at">plot =</span> p_da, </span>
+<span id="cb12-54"><a href="#cb12-54" tabindex="-1"></a>       <span class="at">height =</span> <span class="dv">8</span>, <span class="at">width =</span> <span class="dv">12</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>)</span>
+<span id="cb12-55"><a href="#cb12-55" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/main_ancombc2.jpeg&quot;</span>, <span class="at">plot =</span> p_da, </span>
+<span id="cb12-56"><a href="#cb12-56" tabindex="-1"></a>       <span class="at">height =</span> <span class="dv">8</span>, <span class="at">width =</span> <span class="dv">12</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>, <span class="at">dpi =</span> <span class="dv">100</span>)</span></code></pre></div>
 </div>
 <div id="session-information" class="section level1">
 <h1>Session information</h1>
@@ -651,9 +668,9 @@ other attached packages:
 [11] MatrixGenerics_1.14.0           matrixStats_1.0.0              
 [13] ANCOMBC_2.4.0                   ggpubr_0.6.0                   
 [15] lubridate_1.9.3                 forcats_1.0.0                  
-[17] stringr_1.5.0                   dplyr_1.1.3                    
-[19] purrr_1.0.2                     tidyr_1.3.0                    
-[21] tibble_3.2.1                    ggplot2_3.4.4                  
+[17] stringr_1.5.0                   dplyr_1.1.4                    
+[19] purrr_1.0.2                     tidyr_1.3.1                    
+[21] tibble_3.2.1                    ggplot2_3.5.0                  
 [23] tidyverse_2.0.0                 openxlsx_4.2.5.2               
 [25] readr_2.1.4                    
 
@@ -667,13 +684,13 @@ loaded via a namespace (and not attached):
  [13] lazyeval_0.2.2              mgcv_1.8-42                
  [15] rhdf5filters_1.13.2         permute_0.9-7              
  [17] withr_2.5.1                 gridExtra_2.3              
- [19] textshaping_0.3.7           cli_3.6.1                  
+ [19] textshaping_0.3.7           cli_3.6.2                  
  [21] sandwich_3.0-2              labeling_0.4.3             
  [23] sass_0.4.7                  mvtnorm_1.2-3              
  [25] proxy_0.4-27                systemfonts_1.0.5          
  [27] yulab.utils_0.1.0           foreign_0.8-84             
  [29] scater_1.30.0               decontam_1.22.0            
- [31] readxl_1.4.3                rstudioapi_0.15.0          
+ [31] readxl_1.4.3                rstudioapi_0.16.0          
  [33] RSQLite_2.3.2               generics_0.1.3             
  [35] gtools_3.9.4                vroom_1.6.4                
  [37] car_3.1-2                   zip_2.3.0                  
@@ -709,13 +726,13 @@ loaded via a namespace (and not attached):
  [97] microbiome_1.24.0           htmlTable_2.4.2            
  [99] BiocNeighbors_1.20.0        expm_0.999-7               
 [101] DelayedArray_0.28.0         checkmate_2.3.0            
-[103] scales_1.2.1                digest_0.6.33              
+[103] scales_1.3.0                digest_0.6.33              
 [105] minqa_1.2.6                 rmarkdown_2.25             
 [107] XVector_0.42.0              htmltools_0.5.6.1          
 [109] pkgconfig_2.0.3             base64enc_0.1-3            
 [111] lme4_1.1-34                 sparseMatrixStats_1.14.0   
 [113] highr_0.10                  fastmap_1.1.1              
-[115] rlang_1.1.1                 htmlwidgets_1.6.2          
+[115] rlang_1.1.3                 htmlwidgets_1.6.2          
 [117] DelayedMatrixStats_1.24.0   farver_2.1.1               
 [119] jquerylib_0.1.4             zoo_1.8-12                 
 [121] jsonlite_1.8.7              energy_1.7-11              
