@@ -660,22 +660,15 @@ p_exp_var_second
 # Outputs
 
 ```{r}
-ggsave(filename = "../results/figures/ext_expose.pdf", plot = p_expose,
+ggsave(filename = "../results/figures/supp_expose.pdf", plot = p_expose,
       width = 6.25, height = 5, units = "in")
-ggsave(filename = "../results/figures/ext_expose.jpeg", plot = p_expose,
-      width = 6.25, height = 5, units = "in", dpi = 100)
-
 ggsave(filename = "../results/figures/main_group_by_perc.pdf", plot = p_summ_prim,
       width = 6.25, height = 6, units = "in")
-ggsave(filename = "../results/figures/main_group_by_perc.jpeg", plot = p_summ_prim,
-      width = 6.25, height = 6, units = "in", dpi = 100)
 
 p_forest = ggarrange(p_exp_var_prim, p_out_var_prim, 
                      ncol = 2, nrow = 1, labels = c("a", "b"))
 ggsave(filename = "../results/figures/main_forest.pdf", plot = p_forest,
        width = 15, height = 6, units = "in")
-ggsave(filename = "../results/figures/main_forest.jpeg", plot = p_forest,
-       width = 15, height = 6, units = "in", dpi = 100)
 ```
 
 # Session information

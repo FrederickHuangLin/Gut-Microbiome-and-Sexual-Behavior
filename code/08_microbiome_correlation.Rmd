@@ -318,10 +318,8 @@ fig_species_dist = df_fig %>%
 # Outputs
 
 ```{r}
-ggsave(file = "../results/figures/ext_secom.pdf", 
+ggsave(file = "../results/figures/supp_secom.pdf", 
        plot = fig_species_linear, height = 6, width = 10, units = "in")
-ggsave(file = "../results/figures/ext_secom.jpeg", 
-       plot = fig_species_linear, height = 6, width = 10, units = "in", dpi = 100)
 ```
 
 # Session information

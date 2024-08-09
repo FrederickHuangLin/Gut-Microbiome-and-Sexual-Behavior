@@ -300,8 +300,6 @@ p_da = ggarrange(fig_group_species, fig_status_species, ncol = 2, nrow = 1,
 
 ggsave(file = "../results/figures/main_ancombc2.pdf", plot = p_da, 
        height = 8, width = 12, units = "in")
-ggsave(file = "../results/figures/main_ancombc2.jpeg", plot = p_da, 
-       height = 8, width = 12, units = "in", dpi = 100)
 ```
 
 # Session information

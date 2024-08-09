@@ -38,34 +38,28 @@ for (sub_dir in sub_dirs) {
 ```
 
 ```{r helper}
-plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, decreasing = FALSE, ...) {
+plot_clme = function(clme_obj, df_points, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
   overall_p = clme_obj$p.value
   ind_p = clme_obj$p.value.ind
   est_mean = clme_obj$theta[group]
   est_se = sqrt(diag(clme_obj$cov.theta))[group]
   
   df_fig = data.frame(x = group, y = est_mean, err = est_se)
-  if (decreasing) {
-    df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
-                      group2 = group[-1],
-                      x = group[-1],
-                      label = paste0("p = ", round(ind_p, 3)),
-                      y.position = seq.int(from = ifelse(est_mean[1] > min(est_mean), 
-                                                         est_mean[1] + p_gap, 
-                                                         est_mean[1] + 2 * p_gap),
-                                           to = min(est_mean) + p_gap, 
-                                           length.out = length(group) - 1))
-  } else {
-    df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
-                      group2 = group[-1],
-                      x = group[-1],
-                      label = paste0("p = ", round(ind_p, 3)),
-                      y.position = seq.int(from = est_mean[2] + p_gap, 
-                                           to = ifelse(est_mean[2] < max(est_mean), 
-                                                       max(est_mean) + p_gap, 
-                                                       max(est_mean) + 2 * p_gap), 
-                                           length.out = length(group) - 1))
-  }
+  
+  if (trend == "increase") {
+      start_p_pos = est_mean[2] + 4 * p_gap
+      end_p_pos = max(est_mean) + 10 * p_gap
+    } else {
+      start_p_pos = max(est_mean) + 10 * p_gap
+      end_p_pos = min(est_mean) + 4 * p_gap}
+  
+  df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
+                    group2 = group[-1],
+                    x = group[-1],
+                    label = paste0("p = ", round(ind_p, 3)),
+                    y.position = seq.int(from = start_p_pos, 
+                                         to = end_p_pos, 
+                                         length.out = length(group) - 1))
   
   df_ann = data.frame(x = group[1], y = ann_pos,
                       fill = "white",
@@ -76,6 +70,9 @@ plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, decreasing =
     geom_bar(stat = "identity", color = "black", aes(fill = x)) + 
     geom_errorbar(aes(ymin = y - 1.96 * err, ymax = y + 1.96 * err), 
                   width = .2, position = position_dodge(.9)) +
+    geom_point(data = df_points, aes(x = x, y = y), 
+               position = position_jitter(width = 0.2, height = 0), 
+               color = "black", alpha = 0.6) +
     add_pvalue(df_p,
                xmin = "group1",
                xmax = "group2",
@@ -142,9 +139,7 @@ species_rarefied = rarefy_even_depth(species_data, rngseed = 1,
                                      replace = FALSE)
 ```
 
-# Primary grouping
-
-## Alpha diversities
+# Alpha diversities
 
 1. Observed species: richness measure, which returns observed richness.
 
@@ -179,19 +174,19 @@ stat_test2 = df_fig %>%
   lm(formula = value ~ group + abx_use)
 ```
 
-#### Observed species
+## Observed species
 
 ```{r}
 summ(stat_test1)
 ```
 
-#### Shannon index
+## Shannon index
 
 ```{r}
 summ(stat_test2)
 ```
 
-#### Box plot
+## Box plot
 
 ```{r, fig.width=10, fig.height=5}
 df_stat = data.frame(p = round(summary(stat_test1)$coef[2:4, "Pr(>|t|)"], 2)) %>%
@@ -219,7 +214,7 @@ p = df_fig %>%
 p
 ```
 
-#### Monotonically increasing trend test
+## Monotonically increasing trend test
 
 ```{r, fig.width=12, fig.height=5}
 df_alpha$group = factor(df_alpha$group, levels = c("G1", "G2", "G3", "G4"), ordered = TRUE)
@@ -228,8 +223,12 @@ cons = list(order = "simple", decreasing = FALSE, node = 1)
 fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
 summ_fit1 = summary(fit1)
 
-fig1_increase_species = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 30, p_gap = 2, ann_pos = 27)
+df_points = df_alpha %>%
+  transmute(x = group, y = Observed)
+
+fig1_increase_species = plot_clme(summ_fit1, df_points, group = c("G1", "G2", "G3", "G4"),
+                                  y_min = 0, y_max = max(df_points$y, na.rm = TRUE) * 1.2, 
+                                  p_gap = 1, ann_pos = max(df_points$y, na.rm = TRUE) * 1.1)
 fig1_increase_species = fig1_increase_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -237,14 +236,18 @@ fig1_increase_species = fig1_increase_species +
 fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
 summ_fit2 = summary(fit2)
 
-fig2_increase_species = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 1.6, p_gap = 0.15, ann_pos = 1.5)
+df_points = df_alpha %>%
+  transmute(x = group, y = Shannon)
+
+fig2_increase_species = plot_clme(summ_fit2, df_points, group = c("G1", "G2", "G3", "G4"),
+                                  y_min = 0, y_max = max(df_points$y, na.rm = TRUE) * 1.2, 
+                                  p_gap = 0.05, ann_pos = max(df_points$y, na.rm = TRUE) * 1.1)
 fig2_increase_species = fig2_increase_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
 ```
 
-#### Monotonically decreasing trend test
+## Monotonically decreasing trend test
 
 ```{r, fig.width=12, fig.height=5}
 cons = list(order = "simple", decreasing = TRUE, node = 1)
@@ -252,8 +255,13 @@ cons = list(order = "simple", decreasing = TRUE, node = 1)
 fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
 summ_fit1 = summary(fit1)
 
-fig1_decrease_species = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 30, p_gap = 2.5, ann_pos = 27, decreasing = TRUE)
+df_points = df_alpha %>%
+  transmute(x = group, y = Observed)
+
+fig1_decrease_species = plot_clme(summ_fit1, df_points, group = c("G1", "G2", "G3", "G4"),
+                                  y_min = 0, y_max = max(df_points$y, na.rm = TRUE) * 1.2, 
+                                  p_gap = 0.8, ann_pos = max(df_points$y, na.rm = TRUE) * 1.1,
+                                  trend = "decrease")
 fig1_decrease_species = fig1_decrease_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Richness")
@@ -261,13 +269,17 @@ fig1_decrease_species = fig1_decrease_species +
 fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
 summ_fit2 = summary(fit2)
 
-fig2_decrease_species = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"),
-                                  y_min = 0, y_max = 1.6, p_gap = 0.15, ann_pos = 1.5, decreasing = TRUE)
+df_points = df_alpha %>%
+  transmute(x = group, y = Shannon)
+
+fig2_decrease_species = plot_clme(summ_fit2, df_points, group = c("G1", "G2", "G3", "G4"),
+                                  y_min = 0, y_max = max(df_points$y, na.rm = TRUE) * 1.2, 
+                                  p_gap = 0.05, ann_pos = max(df_points$y, na.rm = TRUE) * 1.1,
+                                  trend = "decrease")
 fig2_decrease_species = fig2_decrease_species +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Shannon Index")
 ```
-
 
 ## Beta diversity {.tabset}
 
@@ -303,181 +315,6 @@ df_p = data.frame(X = rep("G1", 3),
 tab_beta_species = ggtexttable(df_p, rows = NULL, theme = ttheme("light"))
 ```
 
-# Secondary grouping
-
-## Alpha diversities
-
-1. Observed species: richness measure, which returns observed richness.
-
-2. Shannon index: diversity measure, which takes into account richness, divergence and evenness.
-
-3. P-value is obtained by linear regressions adjusting for abx usage.
-
-```{r}
-d_alpha = alpha(species_rarefied, index = c("observed", "diversity_shannon"))
-df_alpha = data.frame(sampleid = meta(species_rarefied)$sampleid,
-                      subjid = meta(species_rarefied)$subjid,
-                      group = meta(species_rarefied)$group2,
-                      abx_use = meta(species_rarefied)$abx_use,
-                      Observed = d_alpha$observed,
-                      Shannon = d_alpha$diversity_shannon,
-                      check.names = FALSE) %>%
-  filter(group != "missing")
-df_alpha$group = recode(df_alpha$group, 
-                        `g1` = "G1", `g2` = "G2",
-                        `g3` = "G3", `g4` = "G4", `g5` = "G5")
-
-df_fig = df_alpha %>% 
-  gather(key = "measure", value = "value", Observed:Shannon)
-df_fig$measure = factor(df_fig$measure, 
-                        levels = c("Observed", "Shannon"))
-df_fig$group = factor(df_fig$group, levels = c("G1", "G2", "G3", "G4", "G5"))
-stat_test1 = df_fig %>%
-  filter(measure == "Observed") %>%
-  lm(formula = value ~ group + abx_use)
-stat_test2 = df_fig %>%
-  filter(measure == "Shannon") %>%
-  lm(formula = value ~ group + abx_use)
-```
-
-#### Observed species
-
-```{r}
-summ(stat_test1)
-```
-
-#### Shannon index
-
-```{r}
-summ(stat_test2)
-```
-
-#### Box plot
-
-```{r, fig.width=10, fig.height=5}
-df_stat = data.frame(p = round(summary(stat_test1)$coef[2:5, "Pr(>|t|)"], 2)) %>%
-  mutate(x = "group", y = "value", measure = "Observed", 
-         group1 = "G1", group2 = c("G2", "G3", "G4", "G5"),
-         y.position = max(stat_test1$model$value) + seq(0, 6, 2)) %>%
-  bind_rows(
-    data.frame(p = round(summary(stat_test2)$coef[2:5, "Pr(>|t|)"], 2)) %>%
-      mutate(x = "group", y = "value", measure = "Shannon", 
-             group1 = "G1", group2 = c("G2", "G3", "G4", "G5"),
-             y.position = max(stat_test2$model$value) + seq(0, 0.6, 0.2))
-  ) 
-
-p = df_fig %>%
-  ggboxplot(x = "group", y = "value", color = "group",
-            add = "jitter", 
-            xlab = FALSE, ylab = FALSE, title = FALSE) +
-  stat_pvalue_manual(df_stat, label = "p", tip.length = 0.01) +
-  scale_color_npg(name = "Group") +
-  facet_wrap(.~measure, scale = "free", nrow = 1) + 
-  theme_bw() + 
-  theme(axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        plot.title = element_text(hjust = 0.5))
-p
-```
-
-#### Monotonically increasing trend test
-
-```{r, fig.width=12, fig.height=5}
-df_alpha$group = factor(df_alpha$group, levels = c("G1", "G2", "G3", "G4", "G5"), ordered = TRUE)
-cons = list(order = "simple", decreasing = FALSE, node = 1)
-
-fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
-summ_fit1 = summary(fit1)
-
-fig1_increase_species_secondary = plot_clme(summ_fit1, 
-                                            group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 30, p_gap = 2, ann_pos = 27)
-fig1_increase_species_secondary = fig1_increase_species_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Richness")
-
-fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
-summ_fit2 = summary(fit2)
-
-fig2_increase_species_secondary = plot_clme(summ_fit2, 
-                                            group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 1.8, p_gap = 0.2, ann_pos = 1.6)
-fig2_increase_species_secondary = fig2_increase_species_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Shannon Index")
-```
-
-#### Monotonically decreasing trend test
-
-```{r, fig.width=12, fig.height=5}
-cons = list(order = "simple", decreasing = TRUE, node = 1)
-
-fit1 = clme(Observed ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
-summ_fit1 = summary(fit1)
-
-fig1_decrease_species_secondary = plot_clme(summ_fit1, 
-                                            group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 30, p_gap = 2.5, ann_pos = 27, decreasing = TRUE)
-fig1_decrease_species_secondary = fig1_decrease_species_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Richness")
-
-fit2 = clme(Shannon ~ group + abx_use, data = df_alpha, constraints = cons, seed = 123)
-summ_fit2 = summary(fit2)
-
-fig2_decrease_species_secondary = plot_clme(summ_fit2, 
-                                            group = c("G1", "G2", "G3", "G4", "G5"),
-                                            y_min = 0, y_max = 1.6, p_gap = 0.2, ann_pos = 1.5, decreasing = TRUE)
-fig2_decrease_species_secondary = fig2_decrease_species_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Shannon Index")
-```
-
-```{r, fig.height=10}
-fig = ggarrange(fig1_increase_species_secondary, fig2_increase_species_secondary, 
-                fig1_decrease_species_secondary, fig2_decrease_species_secondary, 
-                nrow = 2, ncol = 2, common.legend = TRUE, labels = c("a", "", "b", ""))
-fig
-```
-
-## Beta diversity {.tabset}
-
-1. P-values are obtained by PERMANOVA
-
-2. Dissimilarity measure: Bray-Curtis
-
-```{r, fig.width=8, fig.height=6}
-species_rarefied = subset_samples(species_rarefied, group2 != "missing")
-
-dis = phyloseq::distance(species_rarefied, method = "bray")
-mds  = ordinate(species_rarefied, "MDS", distance = dis)
-
-# PCoA plot
-fig_beta_species_secondary = plot_ordination(species_rarefied, 
-                                             mds, color = "group2") +
-  geom_point(size = 3, alpha = 0.8) +
-  stat_ellipse(geom = "polygon", type = "t", level = 0.8,
-               aes(fill = group2), alpha = 0.25) +
-  scale_color_npg(name = NULL, labels = c("G1", "G2", "G3", "G4", "G5")) +
-  scale_fill_npg(name = NULL, labels = c("G1", "G2", "G3", "G4", "G5")) +
-  theme_bw()
-
-# P-values
-groups = meta(species_rarefied)$group2
-set.seed(123)
-stat_test = pairwise.perm.manova(resp = dis, fact = groups, nperm = 999, p.method = "none")
-df_p = data.frame(X = rep("G1", 4),
-                  Y = c("G2", "G3", "G4", "G5"),
-                  p = round(stat_test$p.value[, "g1"], 2),
-                  q = round(p.adjust(stat_test$p.value[, "g1"], method = "BH"), 2))
-
-tab_beta_species_secondary = ggtexttable(df_p, rows = NULL, theme = ttheme("light"))
-
-p = ggarrange(fig_beta_species_secondary, tab_beta_species_secondary,  
-              ncol = 1, nrow = 2, heights = c(1, 0.4))
-p
-```
-
 # Outputs
 
 ```{r}
@@ -485,18 +322,14 @@ p_alpha = ggarrange(fig1_increase_species, fig2_increase_species,
                     fig1_decrease_species, fig2_decrease_species,
                     ncol = 2, nrow = 2, common.legend = TRUE, legend = "top",
                     labels = c("a", "b", "c", "d"))
-ggsave(filename = "../results/figures/ext_alpha.pdf", plot = p_alpha,
+ggsave(filename = "../results/figures/supp_alpha.pdf", plot = p_alpha,
        width = 8, height = 8, units = "in")
-ggsave(filename = "../results/figures/ext_alpha.jpeg", plot = p_alpha,
-       width = 8, height = 8, units = "in", dpi = 100)
 
 p_beta = ggarrange(fig_beta_species, tab_beta_species,  
                    ncol = 2, nrow = 1, widths = c(1, 0.4),
                    common.legend = TRUE, legend = "top")
-ggsave(filename = "../results/figures/ext_beta.pdf", plot = p_beta,
+ggsave(filename = "../results/figures/supp_beta.pdf", plot = p_beta,
        width = 10, height = 6, units = "in")
-ggsave(filename = "../results/figures/ext_beta.jpeg", plot = p_beta,
-       width = 10, height = 6, units = "in", dpi = 100)
 ```
 
 # Session information

@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2024-02-23" />
+<meta name="date" content="2024-08-09" />
 
 <title>Microbial Correlation Analyses</title>
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Microbial Correlation Analyses</h1>
-<h4 class="date">February 23, 2024</h4>
+<h4 class="date">August 09, 2024</h4>
 
 
 
@@ -634,10 +634,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="outputs" class="section level1">
 <h1>Outputs</h1>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/ext_secom.pdf&quot;</span>, </span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>       <span class="at">plot =</span> fig_species_linear, <span class="at">height =</span> <span class="dv">6</span>, <span class="at">width =</span> <span class="dv">10</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>)</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/ext_secom.jpeg&quot;</span>, </span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>       <span class="at">plot =</span> fig_species_linear, <span class="at">height =</span> <span class="dv">6</span>, <span class="at">width =</span> <span class="dv">10</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>, <span class="at">dpi =</span> <span class="dv">100</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">file =</span> <span class="st">&quot;../results/figures/supp_secom.pdf&quot;</span>, </span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>       <span class="at">plot =</span> fig_species_linear, <span class="at">height =</span> <span class="dv">6</span>, <span class="at">width =</span> <span class="dv">10</span>, <span class="at">units =</span> <span class="st">&quot;in&quot;</span>)</span></code></pre></div>
 </div>
 <div id="session-information" class="section level1">
 <h1>Session information</h1>
@@ -668,9 +666,9 @@ other attached packages:
 [11] ggpubr_0.6.0                    tidygraph_1.3.0                
 [13] ggraph_2.1.0                    igraph_1.5.1                   
 [15] lubridate_1.9.3                 forcats_1.0.0                  
-[17] stringr_1.5.0                   dplyr_1.1.3                    
-[19] purrr_1.0.2                     tidyr_1.3.0                    
-[21] tibble_3.2.1                    ggplot2_3.4.4                  
+[17] stringr_1.5.0                   dplyr_1.1.4                    
+[19] purrr_1.0.2                     tidyr_1.3.1                    
+[21] tibble_3.2.1                    ggplot2_3.5.0                  
 [23] tidyverse_2.0.0                 openxlsx_4.2.5.2               
 [25] readr_2.1.4                    
 
@@ -685,13 +683,13 @@ loaded via a namespace (and not attached):
  [15] mgcv_1.8-42                 rhdf5filters_1.13.2        
  [17] permute_0.9-7               withr_2.5.1                
  [19] gridExtra_2.3               textshaping_0.3.7          
- [21] cli_3.6.1                   Biobase_2.62.0             
+ [21] cli_3.6.2                   Biobase_2.62.0             
  [23] sandwich_3.0-2              sass_0.4.7                 
  [25] mvtnorm_1.2-3               proxy_0.4-27               
  [27] systemfonts_1.0.5           yulab.utils_0.1.0          
  [29] foreign_0.8-84              scater_1.30.0              
  [31] decontam_1.22.0             readxl_1.4.3               
- [33] rstudioapi_0.15.0           RSQLite_2.3.2              
+ [33] rstudioapi_0.16.0           RSQLite_2.3.2              
  [35] generics_0.1.3              vroom_1.6.4                
  [37] gtools_3.9.4                car_3.1-2                  
  [39] zip_2.3.0                   Matrix_1.6-1.1             
@@ -726,13 +724,13 @@ loaded via a namespace (and not attached):
  [97] compiler_4.3.1              htmlTable_2.4.2            
  [99] BiocNeighbors_1.20.0        expm_0.999-7               
 [101] DelayedArray_0.28.0         checkmate_2.3.0            
-[103] scales_1.2.1                digest_0.6.33              
+[103] scales_1.3.0                digest_0.6.33              
 [105] minqa_1.2.6                 rmarkdown_2.25             
 [107] XVector_0.42.0              htmltools_0.5.6.1          
 [109] pkgconfig_2.0.3             base64enc_0.1-3            
 [111] lme4_1.1-34                 sparseMatrixStats_1.14.0   
 [113] MatrixGenerics_1.14.0       fastmap_1.1.1              
-[115] rlang_1.1.1                 htmlwidgets_1.6.2          
+[115] rlang_1.1.3                 htmlwidgets_1.6.2          
 [117] DelayedMatrixStats_1.24.0   farver_2.1.1               
 [119] jquerylib_0.1.4             zoo_1.8-12                 
 [121] jsonlite_1.8.7              energy_1.7-11              
@@ -740,7 +738,7 @@ loaded via a namespace (and not attached):
 [125] RCurl_1.98-1.12             magrittr_2.0.3             
 [127] Formula_1.2-5               scuttle_1.12.0             
 [129] GenomeInfoDbData_1.2.11     Rhdf5lib_1.24.0            
-[131] munsell_0.5.0               Rcpp_1.0.11                
+[131] munsell_0.5.0               Rcpp_1.0.12                
 [133] ape_5.7-1                   viridis_0.6.4              
 [135] CVXR_1.0-11                 stringi_1.7.12             
 [137] rootSolve_1.8.2.4           zlibbioc_1.48.0            

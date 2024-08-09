@@ -37,7 +37,7 @@ for (sub_dir in sub_dirs) {
 ```
 
 ```{r helper}
-plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
+plot_clme = function(clme_obj, df_points, group, y_min, y_max, p_gap, ann_pos, trend = "increase", ...) {
   overall_p = clme_obj$p.value
   ind_p = clme_obj$p.value.ind
   est_mean = clme_obj$theta[group]
@@ -45,21 +45,12 @@ plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "inc
   
   df_fig = data.frame(x = group, y = est_mean, err = est_se)
   
-  if (est_mean[2] < est_mean[length(est_mean)]) {
-    start_p_pos = est_mean[2] + p_gap
-    end_p_pos = max(est_mean) + p_gap
-  } else if (est_mean[2] > est_mean[length(est_mean)]) {
-    start_p_pos = max(est_mean) + p_gap
-    end_p_pos = min(est_mean) + p_gap
-  } else {
-    if (trend == "increase") {
-      start_p_pos = est_mean[2] + p_gap
-      end_p_pos = max(est_mean) + 2 * p_gap
+  if (trend == "increase") {
+      start_p_pos = est_mean[2] + 4 * p_gap
+      end_p_pos = max(est_mean) + 10 * p_gap
     } else {
-      start_p_pos = max(est_mean) + 2 * p_gap
-      end_p_pos = min(est_mean) + p_gap
-    }
-  }
+      start_p_pos = max(est_mean) + 10 * p_gap
+      end_p_pos = min(est_mean) + 4 * p_gap}
   
   df_p = data.frame(group1 = group[seq_len(length(group) - 1)],
                     group2 = group[-1],
@@ -77,6 +68,9 @@ plot_clme = function(clme_obj, group, y_min, y_max, p_gap, ann_pos, trend = "inc
     geom_bar(stat = "identity", color = "black", aes(fill = x)) + 
     geom_errorbar(aes(ymin = y - 1.96 * err, ymax = y + 1.96 * err), 
                   width = .2, position = position_dodge(.9)) +
+    geom_point(data = df_points, aes(x = x, y = y), 
+               position = position_jitter(width = 0.2, height = 0), 
+               color = "black", alpha = 0.6) +
     add_pvalue(df_p,
                xmin = "group1",
                xmax = "group2",
@@ -195,8 +189,6 @@ df_v1 %>%
 
 # SCFA ~ groups: box plots
 
-## Primary group
-
 ```{r, fig.width=8, fig.height=8}
 bxp_list = list()
 var_list = c("acetate_v1", "butyrate_v1", "propionate_v1", "valerate_v1")
@@ -216,28 +208,7 @@ ggarrange(bxp_list[[1]], bxp_list[[2]], bxp_list[[3]], bxp_list[[4]],
           common.legend = TRUE)
 ```
 
-## Secondary group
-
-```{r, fig.width=8, fig.height=8}
-bxp_list = list()
-var_list = c("acetate_v1", "butyrate_v1", "propionate_v1", "valerate_v1")
-title_list = c("Acetate", "Butyrate", "Propionate", "Valerate")
-y_pos_list = c(6, 0.25, 0.35, 0.07)
-step_list = c(0.1, 0.1, 0.1, 0.1)
-
-for (i in seq_along(var_list)) {
-  bxp = plot_box(group_lab = c("G1", "G2", "G3", "G4", "G5"),
-                 group_var = "group2",
-                 key_var = var_list[i], title = title_list[i],
-                 y.position = y_pos_list[i], step.increase = step_list[i])
-  bxp_list[[i]] = bxp
-}
-
-ggarrange(bxp_list[[1]], bxp_list[[2]], bxp_list[[3]], bxp_list[[4]],
-          common.legend = TRUE)
-```
-
-# SCFA ~ groups: increasing trend
+# SCFA ~ groups: increasing trend {.tabset}
 
 ```{r}
 cons = list(order = "simple", decreasing = FALSE, node = 1)
@@ -247,123 +218,79 @@ cons = list(order = "simple", decreasing = FALSE, node = 1)
 
 2. P-values were not adjusted for multiple comparisons.
 
-## Primary grouping {.tabset}
-
-### Acetate
+## Acetate
 
 ```{r}
 fit1 = clme(acetate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit1 = summary(fit1)
 
-fig_ace_primary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"), 
-                            y_min = 0, y_max = 4, p_gap = 0.7, ann_pos = 3.5)
+df_points = df_v1 %>%
+  transmute(x = group1, y = acetate_v1)
+
+fig_ace_primary = plot_clme(summ_fit1, df_points, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                            p_gap = 0.2, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8)
 fig_ace_primary = fig_ace_primary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Acetate")
 fig_ace_primary
 ```
 
-### Butyrate
+## Butyrate
 
 ```{r}
 fit2 = clme(butyrate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit2 = summary(fit2)
 
-fig_but_primary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"), 
-                            y_min = 0, y_max = 0.18, p_gap = 0.04, ann_pos = 0.16)
+df_points = df_v1 %>%
+  transmute(x = group1, y = butyrate_v1)
+
+fig_but_primary = plot_clme(summ_fit2, df_points, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                            p_gap = 0.01, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8)
 fig_but_primary = fig_but_primary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Butyrate")
 fig_but_primary
 ```
 
-### Propionate
+## Propionate
 
 ```{r}
 fit3 = clme(propionate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit3 = summary(fit3)
 
-fig_pro_primary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
-                            y_min = 0, y_max = 0.25, p_gap = 0.05, ann_pos = 0.22)
+df_points = df_v1 %>%
+  transmute(x = group1, y = propionate_v1)
+
+fig_pro_primary = plot_clme(summ_fit3, df_points, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                            p_gap = 0.01, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8)
 fig_pro_primary = fig_pro_primary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Propionate")
 fig_pro_primary
 ```
 
-### Valerate
+## Valerate
 
 ```{r}
 fit4 = clme(valerate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit4 = summary(fit4)
 
-fig_val_primary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
-                    y_min = 0, y_max = 0.053, p_gap = 0.009, ann_pos = 0.048)
+df_points = df_v1 %>%
+  transmute(x = group1, y = valerate_v1)
+
+fig_val_primary = plot_clme(summ_fit4, df_points, group = c("G1", "G2", "G3", "G4"),
+                            y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                            p_gap = 0.002, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8)
 fig_val_primary = fig_val_primary +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Valerate")
 fig_val_primary
 ```
 
-## Secondary grouping {.tabset}
-
-### Acetate
-
-```{r}
-fit1 = clme(acetate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit1 = summary(fit1)
-
-fig_ace_secondary = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"), 
-                              y_min = 0, y_max = 4, p_gap = 0.7, ann_pos = 3.5)
-fig_ace_secondary = fig_ace_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Acetate")
-fig_ace_secondary
-```
-
-### Butyrate
-
-```{r}
-fit2 = clme(butyrate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit2 = summary(fit2)
-
-fig_but_secondary = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"), 
-                              y_min = 0, y_max = 0.18, p_gap = 0.04, ann_pos = 0.16)
-fig_but_secondary = fig_but_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Butyrate")
-fig_but_secondary
-```
-
-### Propionate
-
-```{r}
-fit3 = clme(propionate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit3 = summary(fit3)
-
-fig_pro_secondary = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
-                              y_min = 0, y_max = 0.25, p_gap = 0.05, ann_pos = 0.22)
-fig_pro_secondary = fig_pro_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Propionate")
-fig_pro_secondary
-```
-
-### Valerate
-
-```{r}
-fit4 = clme(valerate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit4 = summary(fit4)
-
-fig_val_secondary = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
-                              y_min = 0, y_max = 0.053, p_gap = 0.009, ann_pos = 0.048)
-fig_val_secondary = fig_val_secondary +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Valerate")
-fig_val_secondary
-```
-
-# SCFA ~ groups: decreasing trend
+# SCFA ~ groups: decreasing trend {.tabset}
 
 ```{r}
 cons = list(order = "simple", decreasing = TRUE, node = 1)
@@ -373,16 +300,18 @@ cons = list(order = "simple", decreasing = TRUE, node = 1)
 
 2. P-values were not adjusted for multiple comparisons.
 
-## Primary grouping {.tabset}
-
-### Acetate
+## Acetate
 
 ```{r}
 fit1 = clme(acetate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit1 = summary(fit1)
 
-fig_ace = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4"), 
-                    y_min = 0, y_max = 4, p_gap = 0.6, ann_pos = 3.5,
+df_points = df_v1 %>%
+  transmute(x = group1, y = acetate_v1)
+
+fig_ace = plot_clme(summ_fit1, df_points, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                    p_gap = 0.2, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8,
                     trend = "decrease")
 fig_ace = fig_ace +
   scale_fill_npg(name = NULL) +
@@ -390,14 +319,18 @@ fig_ace = fig_ace +
 fig_ace
 ```
 
-### Butyrate
+## Butyrate
 
 ```{r}
 fit2 = clme(butyrate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit2 = summary(fit2)
 
-fig_but = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4"), 
-                    y_min = 0, y_max = 0.18, p_gap = 0.02, ann_pos = 0.16,
+df_points = df_v1 %>%
+  transmute(x = group1, y = butyrate_v1)
+
+fig_but = plot_clme(summ_fit2, df_points, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                    p_gap = 0.01, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8,
                     trend = "decrease")
 fig_but = fig_but +
   scale_fill_npg(name = NULL) +
@@ -405,14 +338,18 @@ fig_but = fig_but +
 fig_but
 ```
 
-### Propionate
+## Propionate
 
 ```{r}
 fit3 = clme(propionate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit3 = summary(fit3)
 
-fig_pro = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4"),
-                    y_min = 0, y_max = 0.25, p_gap = 0.03, ann_pos = 0.22,
+df_points = df_v1 %>%
+  transmute(x = group1, y = propionate_v1)
+
+fig_pro = plot_clme(summ_fit3, df_points, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                    p_gap = 0.01, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8,
                     trend = "decrease")
 fig_pro = fig_pro +
   scale_fill_npg(name = NULL) +
@@ -420,92 +357,23 @@ fig_pro = fig_pro +
 fig_pro
 ```
 
-### Valerate
+## Valerate
 
 ```{r}
 fit4 = clme(valerate_v1 ~ group1 + abx_use, data = df_v1, constraints = cons, seed = 123)
 summ_fit4 = summary(fit4)
 
-fig_val = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4"),
-                    y_min = 0, y_max = 0.053, p_gap = 0.005, ann_pos = 0.048,
+df_points = df_v1 %>%
+  transmute(x = group1, y = valerate_v1)
+
+fig_val = plot_clme(summ_fit4, df_points, group = c("G1", "G2", "G3", "G4"),
+                    y_min = 0, y_max = max(df_points$y, na.rm = TRUE), 
+                    p_gap = 0.001, ann_pos = max(df_points$y, na.rm = TRUE) * 0.8,
                     trend = "decrease")
 fig_val = fig_val +
   scale_fill_npg(name = NULL) +
   labs(x = NULL, y = "Valerate")
 fig_val
-```
-
-## Secondary grouping {.tabset}
-
-### Acetate
-
-```{r}
-fit1 = clme(acetate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit1 = summary(fit1)
-
-fig_ace = plot_clme(summ_fit1, group = c("G1", "G2", "G3", "G4", "G5"), 
-                    y_min = 0, y_max = 4, p_gap = 0.5, ann_pos = 3.5,
-                    trend = "decrease")
-fig_ace = fig_ace +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Acetate")
-fig_ace
-```
-
-### Butyrate
-
-```{r}
-fit2 = clme(butyrate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit2 = summary(fit2)
-
-fig_but = plot_clme(summ_fit2, group = c("G1", "G2", "G3", "G4", "G5"), 
-                    y_min = 0, y_max = 0.18, p_gap = 0.02, ann_pos = 0.16,
-                    trend = "decrease")
-fig_but = fig_but +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Butyrate")
-fig_but
-```
-
-### Propionate
-
-```{r}
-fit3 = clme(propionate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit3 = summary(fit3)
-
-fig_pro = plot_clme(summ_fit3, group = c("G1", "G2", "G3", "G4", "G5"),
-                    y_min = 0, y_max = 0.25, p_gap = 0.03, ann_pos = 0.22,
-                    trend = "decrease")
-fig_pro = fig_pro +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Propionate")
-fig_pro
-```
-
-### Valerate
-
-```{r}
-fit4 = clme(valerate_v1 ~ group2 + abx_use, data = df_v1, constraints = cons, seed = 123)
-summ_fit4 = summary(fit4)
-
-fig_val = plot_clme(summ_fit4, group = c("G1", "G2", "G3", "G4", "G5"),
-                    y_min = 0, y_max = 0.053, p_gap = 0.005, ann_pos = 0.048,
-                    trend = "decrease")
-fig_val = fig_val +
-  scale_fill_npg(name = NULL) +
-  labs(x = NULL, y = "Valerate")
-fig_val
-```
-
-# Outputs
-
-```{r}
-p_scfa = ggarrange(fig_ace_primary, fig_val_primary, ncol = 2, 
-                   common.legend = TRUE, legend = "top", labels = c("a", "b"))
-ggsave(filename = "../results/figures/main_scfa.pdf", plot = p_scfa,
-       width = 8, height = 5, units = "in")
-ggsave(filename = "../results/figures/main_scfa.jpeg", plot = p_scfa,
-       width = 8, height = 5, units = "in", dpi = 100)
 ```
 
 # Session information
